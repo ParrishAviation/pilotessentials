@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, Plane } from 'lucide-react';
+import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut } from 'lucide-react';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 
 const navItems = [
@@ -12,7 +13,9 @@ const navItems = [
 
 export default function Sidebar() {
   const { user, levelPercent, xpForNextLevel } = useUser();
+  const { user: authUser, signOut } = useAuth();
   const location = useLocation();
+  const displayName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Pilot';
 
   return (
     <aside style={{
@@ -133,17 +136,26 @@ export default function Sidebar() {
             width: 34, height: 34, borderRadius: 10,
             background: 'linear-gradient(135deg, #0ea5e9, #818cf8)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 700, color: '#fff',
+            fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
           }}>
-            P
+            {displayName[0].toUpperCase()}
           </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Pilot Student</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
             <div style={{ fontSize: 11, color: '#475569', display: 'flex', alignItems: 'center', gap: 3 }}>
               <Star size={10} fill="#f59e0b" color="#f59e0b" />
               {user.earnedBadges.length} badges
             </div>
           </div>
+          <button
+            onClick={signOut}
+            title="Sign out"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', padding: 4, borderRadius: 6, transition: 'color 0.2s', flexShrink: 0 }}
+            onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+            onMouseLeave={e => e.currentTarget.style.color = '#475569'}
+          >
+            <LogOut size={15} />
+          </button>
         </div>
       </div>
     </aside>

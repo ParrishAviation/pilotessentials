@@ -1,9 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 import { BADGES } from '../data/courses';
 
 const UserContext = createContext(null);
 
-const DEFAULT_STATE = {
+const EMPTY_STATE = {
   xp: 0,
   level: 1,
   streak: 0,
@@ -31,162 +33,210 @@ function getLevel(xp) {
 }
 
 function getXpForNextLevel(level) {
-  const thresholds = [500, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000, Infinity];
-  return thresholds[level - 1];
+  const t = [500, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000, Infinity];
+  return t[level - 1];
 }
 
 function getXpForCurrentLevel(level) {
-  const thresholds = [0, 500, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000];
-  return thresholds[level - 1];
+  const t = [0, 500, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000];
+  return t[level - 1];
 }
 
 export function UserProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('skyace_user');
-      return saved ? { ...DEFAULT_STATE, ...JSON.parse(saved) } : DEFAULT_STATE;
-    } catch {
-      return DEFAULT_STATE;
-    }
-  });
-
+  const { user: authUser } = useAuth();
+  const [userData, setUserData] = useState(EMPTY_STATE);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showConfetti, setShowConfetti] = useState(false);
+  const loadingRef = useRef(false);
+
+  const loadUserData = useCallback(async (userId) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    try {
+      const [
+        profileRes, enrolledRes, lessonsRes, modulesRes,
+        coursesRes, scoresRes, badgesRes, perfectRes,
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('enrolled_courses').select('course_id').eq('user_id', userId),
+        supabase.from('completed_lessons').select('lesson_id, xp_earned').eq('user_id', userId),
+        supabase.from('completed_modules').select('module_id').eq('user_id', userId),
+        supabase.from('completed_courses').select('course_id').eq('user_id', userId),
+        supabase.from('quiz_scores').select('quiz_id, score, total, percent').eq('user_id', userId),
+        supabase.from('earned_badges').select('badge_id').eq('user_id', userId),
+        supabase.from('perfect_quizzes').select('quiz_id').eq('user_id', userId),
+      ]);
+
+      const profile = profileRes.data || {};
+      const quizScoresMap = {};
+      (scoresRes.data || []).forEach(s => {
+        quizScoresMap[s.quiz_id] = { score: s.score, total: s.total, percent: s.percent };
+      });
+
+      setUserData({
+        xp: profile.xp || 0,
+        level: profile.level || 1,
+        streak: profile.streak || 0,
+        lastActiveDate: profile.last_active_date || null,
+        enrolledCourses: (enrolledRes.data || []).map(r => r.course_id),
+        completedLessons: (lessonsRes.data || []).map(r => r.lesson_id),
+        completedModules: (modulesRes.data || []).map(r => r.module_id),
+        completedCourses: (coursesRes.data || []).map(r => r.course_id),
+        quizScores: quizScoresMap,
+        earnedBadges: (badgesRes.data || []).map(r => r.badge_id),
+        perfectQuizzes: (perfectRes.data || []).map(r => r.quiz_id),
+      });
+    } catch (err) {
+      console.error('Failed to load user data:', err);
+    } finally {
+      loadingRef.current = false;
+      setDataLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('skyace_user', JSON.stringify(user));
-  }, [user]);
+    if (authUser) {
+      setDataLoaded(false);
+      loadUserData(authUser.id);
+    } else {
+      setUserData(EMPTY_STATE);
+      setDataLoaded(true);
+    }
+  }, [authUser, loadUserData]);
 
   const addNotification = useCallback((msg, type = 'xp') => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setNotifications(n => [...n, { id, msg, type }]);
     setTimeout(() => setNotifications(n => n.filter(x => x.id !== id)), 3500);
   }, []);
 
-  const checkBadges = useCallback((nextUser) => {
+  const checkAndAwardBadges = useCallback(async (nextState) => {
     const newBadges = [];
     BADGES.forEach(badge => {
-      if (nextUser.earnedBadges.includes(badge.id)) return;
+      if (nextState.earnedBadges.includes(badge.id)) return;
       let earned = false;
-      if (badge.lessonsRequired && nextUser.completedLessons.length >= badge.lessonsRequired) earned = true;
-      if (badge.xpRequired && badge.xpRequired > 0 && nextUser.xp >= badge.xpRequired) earned = true;
-      if (badge.streakRequired && nextUser.streak >= badge.streakRequired) earned = true;
-      if (badge.moduleRequired && nextUser.completedModules.includes(badge.moduleRequired)) earned = true;
-      if (badge.courseRequired && nextUser.completedCourses.includes(badge.courseRequired)) earned = true;
-      if (badge.perfect && nextUser.perfectQuizzes.length > 0) earned = true;
+      if (badge.lessonsRequired > 0 && nextState.completedLessons.length >= badge.lessonsRequired) earned = true;
+      if (badge.xpRequired > 0 && nextState.xp >= badge.xpRequired) earned = true;
+      if (badge.streakRequired && nextState.streak >= badge.streakRequired) earned = true;
+      if (badge.moduleRequired && nextState.completedModules.includes(badge.moduleRequired)) earned = true;
+      if (badge.courseRequired && nextState.completedCourses.includes(badge.courseRequired)) earned = true;
+      if (badge.perfect && nextState.perfectQuizzes.length > 0) earned = true;
       if (earned) newBadges.push(badge.id);
     });
+
+    if (newBadges.length && authUser) {
+      await supabase.from('earned_badges').insert(
+        newBadges.map(badge_id => ({ user_id: authUser.id, badge_id }))
+      );
+      newBadges.forEach(bid => {
+        const badge = BADGES.find(b => b.id === bid);
+        if (badge) setTimeout(() => addNotification(`Badge Unlocked: ${badge.icon} ${badge.title}`, 'badge'), 600);
+      });
+    }
     return newBadges;
-  }, []);
+  }, [authUser, addNotification]);
 
-  const completeLesson = useCallback((lessonId, xpAmount) => {
-    setUser(prev => {
-      if (prev.completedLessons.includes(lessonId)) return prev;
-      const nextXp = prev.xp + xpAmount;
-      const prevLevel = getLevel(prev.xp);
-      const nextLevel = getLevel(nextXp);
-      const nextUser = {
-        ...prev,
-        xp: nextXp,
-        level: nextLevel,
-        completedLessons: [...prev.completedLessons, lessonId],
-      };
-      const newBadges = checkBadges(nextUser);
-      if (newBadges.length) {
-        nextUser.earnedBadges = [...nextUser.earnedBadges, ...newBadges];
-        newBadges.forEach(bid => {
-          const badge = BADGES.find(b => b.id === bid);
-          if (badge) setTimeout(() => addNotification(`Badge Unlocked: ${badge.icon} ${badge.title}`, 'badge'), 500);
-        });
-      }
-      if (nextLevel > prevLevel) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 4000);
-        setTimeout(() => addNotification(`Level Up! You're now Level ${nextLevel} 🚀`, 'levelup'), 200);
-      }
-      addNotification(`+${xpAmount} XP`, 'xp');
-      return nextUser;
-    });
-  }, [addNotification, checkBadges]);
+  const updateProfile = useCallback(async (updates) => {
+    if (!authUser) return;
+    await supabase.from('profiles').update(updates).eq('id', authUser.id);
+  }, [authUser]);
 
-  const completeModule = useCallback((moduleId) => {
-    setUser(prev => {
-      if (prev.completedModules.includes(moduleId)) return prev;
-      const nextUser = { ...prev, completedModules: [...prev.completedModules, moduleId] };
-      const newBadges = checkBadges(nextUser);
-      if (newBadges.length) {
-        nextUser.earnedBadges = [...nextUser.earnedBadges, ...newBadges];
-        newBadges.forEach(bid => {
-          const badge = BADGES.find(b => b.id === bid);
-          if (badge) setTimeout(() => addNotification(`Badge Unlocked: ${badge.icon} ${badge.title}`, 'badge'), 500);
-        });
-      }
-      return nextUser;
-    });
-  }, [addNotification, checkBadges]);
+  const completeLesson = useCallback(async (lessonId, xpAmount) => {
+    if (!authUser || userData.completedLessons.includes(lessonId)) return;
+    const newXp = userData.xp + xpAmount;
+    const prevLevel = getLevel(userData.xp);
+    const newLevel = getLevel(newXp);
+    const newLessons = [...userData.completedLessons, lessonId];
 
-  const completeCourse = useCallback((courseId) => {
-    setUser(prev => {
-      if (prev.completedCourses.includes(courseId)) return prev;
+    setUserData(prev => ({ ...prev, xp: newXp, level: newLevel, completedLessons: newLessons }));
+    addNotification(`+${xpAmount} XP`, 'xp');
+
+    if (newLevel > prevLevel) {
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
-      const nextUser = { ...prev, completedCourses: [...prev.completedCourses, courseId] };
-      const newBadges = checkBadges(nextUser);
-      if (newBadges.length) {
-        nextUser.earnedBadges = [...nextUser.earnedBadges, ...newBadges];
-      }
-      return nextUser;
-    });
-  }, [checkBadges]);
+      setTimeout(() => setShowConfetti(false), 4000);
+      setTimeout(() => addNotification(`Level Up! You're now Level ${newLevel} 🚀`, 'levelup'), 300);
+    }
 
-  const saveQuizScore = useCallback((quizId, score, total, isPerfect) => {
-    setUser(prev => {
-      const nextUser = {
-        ...prev,
-        quizScores: { ...prev.quizScores, [quizId]: { score, total, percent: Math.round((score / total) * 100) } },
-        perfectQuizzes: isPerfect && !prev.perfectQuizzes.includes(quizId)
-          ? [...prev.perfectQuizzes, quizId]
-          : prev.perfectQuizzes,
-      };
-      const newBadges = checkBadges(nextUser);
-      if (newBadges.length) {
-        nextUser.earnedBadges = [...nextUser.earnedBadges, ...newBadges];
-        newBadges.forEach(bid => {
-          const badge = BADGES.find(b => b.id === bid);
-          if (badge) setTimeout(() => addNotification(`Badge Unlocked: ${badge.icon} ${badge.title}`, 'badge'), 1000);
-        });
-      }
-      return nextUser;
-    });
-  }, [addNotification, checkBadges]);
+    await Promise.all([
+      supabase.from('completed_lessons').upsert({ user_id: authUser.id, lesson_id: lessonId, xp_earned: xpAmount }),
+      updateProfile({ xp: newXp, level: newLevel }),
+    ]);
 
-  const enrollInCourse = useCallback((courseId) => {
-    setUser(prev => {
-      if (prev.enrolledCourses.includes(courseId)) return prev;
-      addNotification('Enrolled! Your journey begins 🛫', 'info');
-      return { ...prev, enrolledCourses: [...prev.enrolledCourses, courseId] };
-    });
-  }, [addNotification]);
+    const nextState = { ...userData, xp: newXp, level: newLevel, completedLessons: newLessons };
+    const newBadges = await checkAndAwardBadges(nextState);
+    if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
+  }, [authUser, userData, addNotification, updateProfile, checkAndAwardBadges]);
 
-  const updateStreak = useCallback(() => {
-    const today = new Date().toDateString();
-    setUser(prev => {
-      if (prev.lastActiveDate === today) return prev;
-      const yesterday = new Date(Date.now() - 86400000).toDateString();
-      const newStreak = prev.lastActiveDate === yesterday ? prev.streak + 1 : 1;
-      return { ...prev, streak: newStreak, lastActiveDate: today };
-    });
-  }, []);
+  const completeModule = useCallback(async (moduleId) => {
+    if (!authUser || userData.completedModules.includes(moduleId)) return;
+    const newModules = [...userData.completedModules, moduleId];
+    setUserData(prev => ({ ...prev, completedModules: newModules }));
+    await supabase.from('completed_modules').upsert({ user_id: authUser.id, module_id: moduleId });
+    const newBadges = await checkAndAwardBadges({ ...userData, completedModules: newModules });
+    if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
+  }, [authUser, userData, checkAndAwardBadges]);
 
-  const xpForNextLevel = getXpForNextLevel(user.level);
-  const xpForCurrentLevel = getXpForCurrentLevel(user.level);
-  const xpProgress = user.xp - xpForCurrentLevel;
-  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
-  const levelPercent = Math.min(100, Math.round((xpProgress / xpNeeded) * 100));
+  const completeCourse = useCallback(async (courseId) => {
+    if (!authUser || userData.completedCourses.includes(courseId)) return;
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 5000);
+    const newCourses = [...userData.completedCourses, courseId];
+    setUserData(prev => ({ ...prev, completedCourses: newCourses }));
+    await supabase.from('completed_courses').upsert({ user_id: authUser.id, course_id: courseId });
+    const newBadges = await checkAndAwardBadges({ ...userData, completedCourses: newCourses });
+    if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
+  }, [authUser, userData, checkAndAwardBadges]);
+
+  const saveQuizScore = useCallback(async (quizId, score, total, isPerfect) => {
+    if (!authUser) return;
+    const percent = Math.round((score / total) * 100);
+    const newScores = { ...userData.quizScores, [quizId]: { score, total, percent } };
+    const newPerfect = isPerfect && !userData.perfectQuizzes.includes(quizId)
+      ? [...userData.perfectQuizzes, quizId] : userData.perfectQuizzes;
+
+    setUserData(prev => ({ ...prev, quizScores: newScores, perfectQuizzes: newPerfect }));
+
+    await supabase.from('quiz_scores').upsert({
+      user_id: authUser.id, quiz_id: quizId, score, total, percent, is_perfect: isPerfect,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,quiz_id' });
+
+    if (isPerfect && !userData.perfectQuizzes.includes(quizId)) {
+      await supabase.from('perfect_quizzes').upsert({ user_id: authUser.id, quiz_id: quizId });
+    }
+
+    const newBadges = await checkAndAwardBadges({ ...userData, quizScores: newScores, perfectQuizzes: newPerfect });
+    if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
+  }, [authUser, userData, checkAndAwardBadges]);
+
+  const enrollInCourse = useCallback(async (courseId) => {
+    if (!authUser || userData.enrolledCourses.includes(courseId)) return;
+    setUserData(prev => ({ ...prev, enrolledCourses: [...prev.enrolledCourses, courseId] }));
+    addNotification('Enrolled! Your journey begins 🛫', 'info');
+    await supabase.from('enrolled_courses').upsert({ user_id: authUser.id, course_id: courseId });
+  }, [authUser, userData, addNotification]);
+
+  const updateStreak = useCallback(async () => {
+    if (!authUser) return;
+    const today = new Date().toISOString().split('T')[0];
+    if (userData.lastActiveDate === today) return;
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const newStreak = userData.lastActiveDate === yesterday ? userData.streak + 1 : 1;
+    setUserData(prev => ({ ...prev, streak: newStreak, lastActiveDate: today }));
+    await updateProfile({ streak: newStreak, last_active_date: today });
+  }, [authUser, userData, updateProfile]);
+
+  const xpForNextLevel = getXpForNextLevel(userData.level);
+  const xpForCurrentLevel = getXpForCurrentLevel(userData.level);
+  const levelPercent = Math.min(100, Math.round(
+    ((userData.xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100
+  ));
 
   return (
     <UserContext.Provider value={{
-      user,
+      user: userData,
+      dataLoaded,
       notifications,
       showConfetti,
       xpForNextLevel,
