@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Upload, CheckCircle, Trash2, Play, ChevronDown, ChevronRight,
   Video, AlertCircle, Loader2, RefreshCw, ArrowLeft, Film, FolderOpen,
-  CloudUpload, X, Eye
+  CloudUpload, X, Eye, Link, ExternalLink
 } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useAuth } from '../context/AuthContext';
@@ -187,6 +187,9 @@ export default function AdminPanel() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [dbReady, setDbReady] = useState(null); // null=checking, true=ok, false=missing
+  const [urlInput, setUrlInput] = useState('');
+  const [savingUrl, setSavingUrl] = useState(false);
 
   // Admin gate
   const isAdmin = ADMIN_EMAILS.includes(user?.email);
@@ -194,6 +197,13 @@ export default function AdminPanel() {
     navigate('/');
     return null;
   }
+
+  // Check if lesson_videos table exists
+  useEffect(() => {
+    supabase.from('lesson_videos').select('id').limit(1).then(({ error }) => {
+      setDbReady(!error || !error.message?.includes('schema cache'));
+    });
+  }, []);
 
   // Expand first module by default
   useEffect(() => {
@@ -287,7 +297,14 @@ export default function AdminPanel() {
       setUploadProgress(100);
 
       if (dbError) {
-        setMessage({ type: 'error', text: 'Video uploaded but failed to save record: ' + dbError.message });
+        const isTableMissing = dbError.message?.includes('schema cache') || dbError.message?.includes('does not exist');
+        setMessage({
+          type: 'error',
+          text: isTableMissing
+            ? 'Video file uploaded to storage but database table is missing. Run supabase/add_video_support.sql in your Supabase SQL Editor, then use "Paste Video URL" below with the uploaded file URL.'
+            : 'Video uploaded but failed to save record: ' + dbError.message,
+        });
+        setDbReady(false);
       } else {
         setVideoUrls(prev => ({ ...prev, [selectedLesson.id]: publicUrl }));
         setMessage({ type: 'success', text: `"${selectedLesson.title}" video is live!` });
@@ -308,6 +325,27 @@ export default function AdminPanel() {
     await supabase.storage.from(BUCKET).remove([path]);
     setVideoUrls(prev => { const n = { ...prev }; delete n[lessonId]; return n; });
     setMessage({ type: 'success', text: 'Video removed.' });
+  };
+
+  const handleSaveUrl = async () => {
+    if (!selectedLesson || !selectedCourse || !urlInput.trim()) return;
+    setSavingUrl(true);
+    setMessage(null);
+    const { error } = await supabase.from('lesson_videos').upsert({
+      lesson_id: selectedLesson.id,
+      course_id: selectedCourse.id,
+      video_url: urlInput.trim(),
+      uploaded_by: user.id,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'lesson_id' });
+    if (error) {
+      setMessage({ type: 'error', text: 'Failed to save URL: ' + error.message });
+    } else {
+      setVideoUrls(prev => ({ ...prev, [selectedLesson.id]: urlInput.trim() }));
+      setMessage({ type: 'success', text: `Video URL saved for "${selectedLesson.title}"!` });
+      setUrlInput('');
+    }
+    setSavingUrl(false);
   };
 
   const allLessons = selectedCourse?.modules?.flatMap(m => m.lessons) ?? [];
@@ -361,6 +399,33 @@ export default function AdminPanel() {
           </div>
         </div>
       </div>
+
+      {/* Setup banner when DB table is missing */}
+      {dbReady === false && (
+        <div style={{
+          padding: '14px 32px',
+          background: 'rgba(251,191,36,0.08)',
+          borderBottom: '1px solid rgba(251,191,36,0.25)',
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+        }}>
+          <AlertCircle size={18} color="#fbbf24" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fde68a', marginBottom: 4 }}>
+              Database setup required — lesson_videos table is missing
+            </div>
+            <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
+              Go to{' '}
+              <a href="https://supabase.com/dashboard/project/djesjwffqgiknfyvbrqn/sql/new" target="_blank" rel="noopener noreferrer"
+                style={{ color: '#fbbf24', textDecoration: 'underline' }}>
+                Supabase → SQL Editor
+              </a>
+              {' '}and run the contents of <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: 4 }}>supabase/add_video_support.sql</code>.
+              Also create a public storage bucket named <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: 4 }}>course-videos</code>.
+              Until then, use the "Paste Video URL" option below.
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left: Course Tree */}
@@ -624,6 +689,57 @@ export default function AdminPanel() {
                     />
                     <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: '#334155' }}>
                       Drop a new file above to replace the existing video
+                    </div>
+                  </div>
+                )}
+
+                {/* URL paste option */}
+                {!videoUrls[selectedLesson.id] && (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
+                    }}>
+                      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+                      <span style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>OR PASTE A VIDEO URL</span>
+                      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{
+                        flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 10, padding: '0 14px',
+                      }}>
+                        <Link size={14} color="#475569" style={{ flexShrink: 0 }} />
+                        <input
+                          type="url"
+                          value={urlInput}
+                          onChange={e => setUrlInput(e.target.value)}
+                          placeholder="https://... (Supabase storage, S3, or any public URL)"
+                          style={{
+                            flex: 1, background: 'none', border: 'none', outline: 'none',
+                            color: '#e2e8f0', fontSize: 13, padding: '12px 0',
+                          }}
+                          onKeyDown={e => e.key === 'Enter' && handleSaveUrl()}
+                        />
+                      </div>
+                      <button
+                        onClick={handleSaveUrl}
+                        disabled={!urlInput.trim() || savingUrl}
+                        style={{
+                          padding: '0 20px', borderRadius: 10, cursor: urlInput.trim() ? 'pointer' : 'not-allowed',
+                          background: urlInput.trim() ? 'linear-gradient(135deg, #0ea5e9, #6366f1)' : 'rgba(255,255,255,0.06)',
+                          border: 'none', color: '#fff', fontSize: 13, fontWeight: 700,
+                          opacity: urlInput.trim() ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {savingUrl ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle size={14} />}
+                        Save
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#334155', marginTop: 6 }}>
+                      Use this if Supabase storage isn't set up yet — paste any public video URL.
                     </div>
                   </div>
                 )}
