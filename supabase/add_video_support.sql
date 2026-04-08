@@ -1,8 +1,23 @@
 -- ============================================================
--- SkyAce — Video Upload Support Migration
+-- SkyAce — Video Upload + AI Study Guide Migration
 -- Run this in: Supabase Dashboard → SQL Editor → New Query
 -- ALSO: Go to Storage → Create bucket named "course-videos" (set to Public)
 -- ============================================================
+
+-- Study Guides (AI-generated per lesson, cached to avoid regeneration)
+create table if not exists public.study_guides (
+  id uuid default gen_random_uuid() primary key,
+  lesson_id text not null unique,
+  course_id text not null,
+  content jsonb not null,
+  model text default 'claude-sonnet-4-6',
+  generated_at timestamptz default now()
+);
+alter table public.study_guides enable row level security;
+create policy "Anyone can read study guides" on public.study_guides
+  for select using (true);
+create policy "Service role manages study guides" on public.study_guides
+  for all using (true);  -- server-side only (service role key required)
 
 -- Lesson Videos table
 create table if not exists public.lesson_videos (

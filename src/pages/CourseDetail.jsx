@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Clock,
-  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield
+  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield, Brain
 } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import StudyGuide from '../components/StudyGuide';
 
 const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 
@@ -267,6 +268,12 @@ export default function CourseDetail() {
   const firstUncompleted = allLessons.find(l => !user.completedLessons.includes(l.id));
   const [activeLesson, setActiveLesson] = useState(firstUncompleted || allLessons[0]);
   const [videoUrls, setVideoUrls] = useState({});
+  const [activeTab, setActiveTab] = useState('video'); // 'video' | 'guide'
+
+  // Reset tab when lesson changes
+  useEffect(() => {
+    setActiveTab('video');
+  }, [activeLesson?.id]);
 
   // Fetch video URLs for this course
   useEffect(() => {
