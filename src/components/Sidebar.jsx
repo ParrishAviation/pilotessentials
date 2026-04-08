@@ -37,25 +37,8 @@ export default function Sidebar() {
     }}>
       {/* Logo */}
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 38, height: 38,
-            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-            borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 15px rgba(14,165,233,0.4)',
-            fontSize: 18,
-          }}>
-            ✈️
-          </div>
-          <div>
-            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: '#f1f5f9', letterSpacing: '-0.5px' }}>
-              Pilot Essentials
-            </div>
-            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Pilot Training
-            </div>
-          </div>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 20, color: '#f1f5f9', letterSpacing: '-0.5px' }}>
+          Pilot Essentials
         </div>
       </div>
 
