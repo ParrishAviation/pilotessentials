@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import XPNotification from './XPNotification';
 import Confetti from './Confetti';
+import AIChat from './AIChat';
 
 export default function Layout() {
   return (
@@ -12,6 +13,7 @@ export default function Layout() {
       </main>
       <XPNotification />
       <Confetti />
+      <AIChat />
     </div>
   );
 }

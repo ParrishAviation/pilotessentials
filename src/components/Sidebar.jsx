@@ -9,6 +9,7 @@ const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 const navItems = [
   { to: '/', icon: Home, label: 'Dashboard' },
   { to: '/courses', icon: BookOpen, label: 'Courses' },
+  { to: '/ai-instructor', icon: null, label: 'AI Instructor', emoji: '✈️' },
   { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
   { to: '/profile', icon: User, label: 'My Profile' },
 ];
@@ -103,12 +104,33 @@ export default function Sidebar() {
       {/* Nav */}
       <nav style={{ padding: '8px 12px', flex: 1 }}>
         <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, padding: '8px 8px 4px' }}>Menu</div>
-        {navItems.map(({ to, icon: Icon, label }) => {
+        {navItems.map(({ to, icon: Icon, label, emoji }) => {
           const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+          const isAI = !!emoji;
           return (
-            <NavLink key={to} to={to} className={`sidebar-link ${isActive ? 'active' : ''}`} style={{ marginBottom: 2 }}>
-              <Icon size={17} />
-              <span>{label}</span>
+            <NavLink
+              key={to} to={to}
+              className={`sidebar-link ${isActive ? 'active' : ''}`}
+              style={{
+                marginBottom: 2,
+                ...(isAI && !isActive ? {
+                  background: 'rgba(14,165,233,0.06)',
+                  border: '1px solid rgba(14,165,233,0.15)',
+                } : {}),
+              }}
+            >
+              {emoji
+                ? <span style={{ fontSize: 16, lineHeight: 1 }}>{emoji}</span>
+                : <Icon size={17} />}
+              <span style={isAI ? { color: isActive ? '#38bdf8' : '#7dd3fc' } : {}}>{label}</span>
+              {isAI && !isActive && (
+                <span style={{
+                  marginLeft: 'auto', fontSize: 9, fontWeight: 800,
+                  padding: '2px 6px', borderRadius: 4,
+                  background: 'rgba(14,165,233,0.15)', color: '#38bdf8',
+                  textTransform: 'uppercase', letterSpacing: 0.5,
+                }}>AI</span>
+              )}
               {isActive && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5 }} />}
             </NavLink>
           );
