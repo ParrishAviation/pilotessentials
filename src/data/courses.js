@@ -11,7 +11,7 @@ export const COURSES = [
     glowColor: 'rgba(14,165,233,0.2)',
     badge: 'Most Popular',
     badgeColor: '#0ea5e9',
-    totalLessons: 60,
+    totalLessons: 100,
     totalHours: 28,
     xpReward: 4000,
     difficulty: 'Beginner',
@@ -19,62 +19,243 @@ export const COURSES = [
     rating: 4.9,
     modules: [
       {
-        id: 'ppl-m1',
-        title: 'Principles of Flight',
+        id: 'ppl-intro',
+        title: 'Introduction',
         lessons: [
-          { id: 'ppl-l1', title: 'Four Forces of Flight', duration: '12:34', xp: 50, type: 'video' },
-          { id: 'ppl-l2', title: "Lift and Bernoulli\'s Principle", duration: '15:22', xp: 50, type: 'video' },
-          { id: 'ppl-l3', title: 'Drag, Thrust & Weight', duration: '11:08', xp: 50, type: 'video' },
-          { id: 'ppl-l4', title: 'Stability and Control Surfaces', duration: '18:45', xp: 50, type: 'video' },
-          { id: 'ppl-l5', title: 'Principles of Flight Quiz', duration: '20 questions', xp: 200, type: 'quiz' },
+          { id: 'ppl-intro-meet', title: 'Meet Your Instructor: Tim Martin-Vegue', duration: '--:--', xp: 25, type: 'video' },
+          { id: 'ppl-intro-resources', title: 'Resources', duration: '--:--', xp: 25, type: 'video' },
+          { id: 'ppl-intro-scheduling', title: 'Scheduling Your FAA Written Test', duration: '--:--', xp: 25, type: 'video' },
+          { id: 'ppl-intro-facebook', title: 'Join the Facebook Group!', duration: '--:--', xp: 25, type: 'video' },
+          { id: 'ppl-intro-comments', title: 'Comments Are Turned On', duration: '--:--', xp: 25, type: 'video' },
         ]
       },
       {
-        id: 'ppl-m2',
-        title: 'Aircraft Systems',
+        id: 'ppl-ch1',
+        title: 'Chapter 1: Aerodynamics',
         lessons: [
-          { id: 'ppl-l6', title: 'Engine Types and Systems', duration: '20:15', xp: 50, type: 'video' },
-          { id: 'ppl-l7', title: 'Fuel Systems', duration: '14:30', xp: 50, type: 'video' },
-          { id: 'ppl-l8', title: 'Electrical & Hydraulic Systems', duration: '16:44', xp: 50, type: 'video' },
-          { id: 'ppl-l9', title: 'Avionics and Instruments', duration: '22:10', xp: 50, type: 'video' },
-          { id: 'ppl-l10', title: 'Aircraft Systems Quiz', duration: '20 questions', xp: 200, type: 'quiz' },
+          { id: 'ppl-ch1-l1', title: '1 — Forces of Flight', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-l2', title: '2 — Stability', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-l3', title: '3 — Angle of Attack and Stalls', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-l4', title: '4 — Ground Effect', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-l5', title: '5 — Spins', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-l6', title: '6 — Left Turning Tendencies', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-l7', title: '7 — Load Factor', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-l8', title: '8 — Velocity vs. G-loads', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch1-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
         ]
       },
       {
-        id: 'ppl-m3',
-        title: 'Weather & Meteorology',
+        id: 'ppl-ch2',
+        title: 'Chapter 2: Aircraft Systems',
         lessons: [
-          { id: 'ppl-l11', title: 'Atmosphere & Pressure', duration: '13:55', xp: 50, type: 'video' },
-          { id: 'ppl-l12', title: 'Clouds and Precipitation', duration: '17:20', xp: 50, type: 'video' },
-          { id: 'ppl-l13', title: 'Wind and Turbulence', duration: '15:40', xp: 50, type: 'video' },
-          { id: 'ppl-l14', title: 'Weather Reports & METARs', duration: '21:05', xp: 50, type: 'video' },
-          { id: 'ppl-l15', title: 'Weather Theory Quiz', duration: '20 questions', xp: 200, type: 'quiz' },
+          { id: 'ppl-ch2-l1', title: '1 — Engine', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch2-l2', title: '2 — Carburetor', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch2-l3', title: '3 — Combustion', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch2-l4', title: '4 — Ignition System', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch2-l5', title: '5 — Fuel Types', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch2-l6', title: '6 — Propellers', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch2-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
         ]
       },
       {
-        id: 'ppl-m4',
-        title: 'Navigation',
+        id: 'ppl-ch3',
+        title: 'Chapter 3: Flight Controls',
         lessons: [
-          { id: 'ppl-l16', title: 'Sectional Charts', duration: '24:18', xp: 50, type: 'video' },
-          { id: 'ppl-l17', title: 'Dead Reckoning', duration: '18:30', xp: 50, type: 'video' },
-          { id: 'ppl-l18', title: 'VOR Navigation', duration: '20:15', xp: 50, type: 'video' },
-          { id: 'ppl-l19', title: 'GPS and Modern Navigation', duration: '16:45', xp: 50, type: 'video' },
-          { id: 'ppl-l20', title: 'Navigation Quiz', duration: '20 questions', xp: 200, type: 'quiz' },
+          { id: 'ppl-ch3-l1', title: '1 — Primary Flight Controls', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch3-l2', title: '2 — Secondary Flight Controls', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch3-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 100, type: 'quiz' },
         ]
       },
       {
-        id: 'ppl-m5',
-        title: 'FAA Regulations & Airspace',
+        id: 'ppl-ch4',
+        title: 'Chapter 4: Principles of Flight',
         lessons: [
-          { id: 'ppl-l21', title: 'FAR Part 61 Overview', duration: '19:22', xp: 50, type: 'video' },
-          { id: 'ppl-l22', title: 'FAR Part 91 Rules', duration: '23:40', xp: 50, type: 'video' },
-          { id: 'ppl-l23', title: 'Airspace Classifications', duration: '25:00', xp: 50, type: 'video' },
-          { id: 'ppl-l24', title: 'ATC Communications', duration: '17:55', xp: 50, type: 'video' },
-          { id: 'ppl-l25', title: 'Regulations & Airspace Final Exam', duration: '20 questions', xp: 300, type: 'quiz' },
+          { id: 'ppl-ch4-l1', title: '1 — Altitudes', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch4-l2', title: '2 — Pressure Altitude', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch4-l3', title: '3 — Density Altitude', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch4-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 100, type: 'quiz' },
         ]
       },
       {
-        id: 'ppl-m6',
+        id: 'ppl-ch5',
+        title: 'Chapter 5: Flight Manuals & Documents',
+        lessons: [
+          { id: 'ppl-ch5-l1', title: '1 — Aircraft Documents', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch5-l2', title: '2 — Aircraft Inspections', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch5-l3', title: '3 — Emergency Locator Transmitter', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch5-l4', title: '4 — Preflight Action', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch5-l5', title: '5 — Preventative Maintenance', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch5-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch6',
+        title: 'Chapter 6: Flight Instruments',
+        lessons: [
+          { id: 'ppl-ch6-l1', title: '1 — Pitot Static System', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch6-l2', title: '2 — Gyroscopic Instruments', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch6-l3', title: '3 — Airspeed Indicator', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch6-l4', title: '4 — Altimeter', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch6-l5', title: '5 — Compass Errors (V.D.M.O.N.A.)', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch6-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch7',
+        title: 'Chapter 7: Weight & Balance',
+        lessons: [
+          { id: 'ppl-ch7-l1', title: '1 — Weight and Balance 1', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch7-l2', title: '2 — Weight and Balance 2', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch7-l3', title: '3 — Weight and Balance 3', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch7-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 100, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch8',
+        title: 'Chapter 8: Aircraft Performance',
+        lessons: [
+          { id: 'ppl-ch8-l1', title: '1 — General Aircraft Performance', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch8-l2', title: '2 — Takeoff Performance', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch8-l3', title: '3 — Landing Distance', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch8-l4', title: '4 — V Speeds', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch8-l5', title: '5 — Headwind Crosswind Component', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch8-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch9',
+        title: 'Chapter 9: Weather Theory',
+        lessons: [
+          { id: 'ppl-ch9-l1', title: '1 — Intro to Weather', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l2', title: '2 — Atmospheric Stability and Air Masses', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l3', title: '3 — Dew Point', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l4', title: '4 — Clouds', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l5', title: '5 — Fog', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l6', title: '6 — Temperature Inversion', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l7', title: '7 — Structural Icing and Frost', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l8', title: '8 — Turbulence', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-l9', title: '9 — Thunderstorms', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch9-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch10',
+        title: 'Chapter 10: Aviation Weather Services',
+        lessons: [
+          { id: 'ppl-ch10-l1', title: '1 — Service Outlets and Weather Briefings', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-l2', title: '2 — M.E.T.A.R.', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-l3', title: '3 — P.I.R.E.P.', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-l4', title: '4 — T.A.F. and F.A.', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-l5', title: '5 — Inflight Weather Advisories', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-l6', title: '6 — Winds and Temperature Aloft Charts', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-l7', title: '7 — Surface Analysis and Weather Depiction Charts', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-l8', title: '8 — Prognostic Charts', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch10-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch11',
+        title: 'Chapter 11: Airport Operations',
+        lessons: [
+          { id: 'ppl-ch11-l1', title: '1 — Airport Diagram', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l2', title: '2 — Chart Supplement', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l3', title: '3 — Airport Lights and Markings', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l4', title: '4 — Visual Glideslope Indicators', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l5', title: '5 — ATC Communication', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l6', title: '6 — ATC Light Signals', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l7', title: '7 — Traffic Patterns', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l8', title: '8 — Right of Way', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l9', title: '9 — Collision Avoidance', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-l10', title: '10 — Wake Turbulence', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch11-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch12',
+        title: 'Chapter 12: Airspace',
+        lessons: [
+          { id: 'ppl-ch12-l1', title: '1 — General Airspace', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch12-l2', title: '2 — Special Use Airspace', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch12-l3', title: '3 — Other Airspace', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch12-l4', title: '4 — Equipment Required for Airspaces', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch12-l5', title: '5 — V.F.R. Weather Minimums', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch12-l6', title: '6 — Special V.F.R.', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch12-l7', title: '7 — Transponder Codes', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch12-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch13',
+        title: 'Chapter 13: Navigation',
+        lessons: [
+          { id: 'ppl-ch13-l1', title: '1 — Sectional Chart', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l2', title: '2 — Latitude and Longitude', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l3', title: '3 — Wind Triangle', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l4', title: '4 — Plotting a Course', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l5', title: '5 — Estimated Time En Route', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l6', title: '6 — Fuel Consumption', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l7', title: '7 — V.F.R. Cruise Altitudes', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l8', title: '8 — V.O.R.', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-l9', title: '9 — V.F.R. Flight Plan', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch13-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch14',
+        title: 'Chapter 14: Aeromedical Factors',
+        lessons: [
+          { id: 'ppl-ch14-l1', title: '1 — General Aeromedical Factors', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch14-l2', title: '2 — Spatial Disorientation', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch14-l3', title: '3 — Alcohol and Drugs', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch14-l4', title: '4 — Hypoxia', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch14-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 100, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch15',
+        title: 'Chapter 15: Regulations',
+        lessons: [
+          { id: 'ppl-ch15-l1', title: '1 — P.I.C. Authority', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch15-l2', title: '2 — Minimum Safe Altitude', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch15-l3', title: '3 — Maximum Airspeed', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch15-l4', title: '4 — Aerobatic Flight', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch15-l5', title: '5 — Nighttime', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch15-l6', title: '6 — N.T.S.B.', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch15-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch16',
+        title: 'Chapter 16: Pilot Qualification',
+        lessons: [
+          { id: 'ppl-ch16-l1', title: '1 — Categories and Classes', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch16-l2', title: '2 — Pilot Documents', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch16-l3', title: '3 — Medical Certificate', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch16-l4', title: '4 — Endorsements', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch16-l5', title: '5 — Privileges & Limitations', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch16-l6', title: '6 — Currency', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch16-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-ch17',
+        title: 'Chapter 17: Miscellaneous',
+        lessons: [
+          { id: 'ppl-ch17-l1', title: '1 — Aeronautical Decision Making', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch17-l2', title: '2 — FAA Publications', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch17-l3', title: '3 — Inflight Maneuvers', duration: '--:--', xp: 50, type: 'video' },
+          { id: 'ppl-ch17-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 100, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-final',
+        title: 'End of Course Test',
+        lessons: [
+          { id: 'ppl-final-test', title: 'Private Pilot Test', duration: '60 questions', xp: 500, type: 'quiz' },
+        ]
+      },
+      {
+        id: 'ppl-bonus',
         title: 'Bonus Practice — All Topics',
         lessons: [
           { id: 'ppl-extra-intro',      title: 'FAA Rules & Certificates Quiz', duration: '15 questions', xp: 150, type: 'quiz' },
