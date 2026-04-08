@@ -2111,6 +2111,54 @@ export const BADGES = [
   { id: 'ifr-complete', icon: '🥈', title: 'Instrument Rated', description: 'Complete the IFR course', xpRequired: 0, courseRequired: 'instrument-rating' },
 ];
 
+// Maps FAA supplement figure numbers to PDF page numbers (FAA-CT-8080-2H)
+// PDF: https://www.faa.gov/sites/faa.gov/files/training_testing/testing/supplements/sport_rec_private_akts.pdf
+export const FIGURE_PAGES = {
+  1:  4,   // Angle of attack diagram
+  2:  5,   // Load factor in turns chart
+  3:  8,   // Altimeter diagrams
+  4:  9,   // Airspeed indicator color arcs
+  6:  11,  // Aircraft lighting
+  7:  13,  // Stability diagrams
+  8:  14,  // Density altitude chart
+  9:  17,  // Flight control positions (wind)
+  10: 18,  // Airport traffic pattern
+  11: 19,  // Runway markings
+  12: 22,  // METAR weather reports
+  13: 24,  // TAF terminal forecast
+  14: 25,  // Pilot weather report (PIREP)
+  15: 27,  // Weather depiction chart
+  16: 28,  // Prognostic chart
+  17: 29,  // Radar summary chart
+  18: 30,  // Winds aloft forecast
+  19: 31,  // Constant pressure analysis
+  20: 32,  // Surface analysis chart
+  21: 34,  // Norfolk/Hampton Roads sectional chart
+  22: 36,  // Minot sectional chart
+  23: 38,  // Priest River / St. Maries sectional
+  24: 40,  // Sectional chart symbols
+  25: 41,  // Low altitude enroute chart
+  26: 42,  // High altitude enroute chart
+  27: 43,  // Airport/facility directory (AFD)
+  28: 44,  // VOR test signal
+  29: 46,  // VOR CDI indicator
+  30: 47,  // ADF/NDB indicator
+  31: 48,  // RMI indicator
+  32: 49,  // HSI indicator
+  33: 54,  // Weight & balance data table
+  34: 55,  // Weight & balance loading graph
+  35: 56,  // Weight & balance moment envelope
+  36: 58,  // Cruise performance chart
+  37: 60,  // Crosswind component chart
+  38: 61,  // Takeoff distance chart
+  39: 62,  // Landing distance chart
+  40: 63,  // Climb performance chart
+  41: 64,  // Fuel consumption chart
+  53: 80,  // Lincoln Municipal airport chart
+};
+
+export const FAA_SUPPLEMENT_PDF = 'https://www.faa.gov/sites/faa.gov/files/training_testing/testing/supplements/sport_rec_private_akts.pdf';
+
 export const LEADERBOARD = [
   { rank: 1, name: 'Captain Sarah M.', xp: 8420, avatar: 'SM', streak: 45, badge: '👑' },
   { rank: 2, name: 'Jake T.', xp: 7150, avatar: 'JT', streak: 32, badge: '🥈' },
