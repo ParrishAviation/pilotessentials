@@ -460,14 +460,87 @@ export default function CourseDetail() {
                     </motion.button>
                   </div>
                 ) : (
-                  <VideoPlayer
-                    lesson={activeLesson}
-                    onComplete={handleCompleteLesson}
-                    isCompleted={user.completedLessons.includes(activeLesson?.id)}
-                    videoUrl={videoUrls[activeLesson?.id]}
-                    isAdmin={isAdmin}
-                    onGoToAdmin={() => navigate('/admin')}
-                  />
+                  <div>
+                    {/* Tab bar */}
+                    <div style={{
+                      display: 'flex', gap: 4, marginBottom: 20,
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 12, padding: 4,
+                      width: 'fit-content',
+                    }}>
+                      {[
+                        { id: 'video', icon: <Video size={14} />, label: 'Lesson Video' },
+                        { id: 'guide', icon: <Brain size={14} />, label: 'AI Study Guide' },
+                      ].map(tab => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 7,
+                            padding: '8px 18px', borderRadius: 9, cursor: 'pointer',
+                            border: 'none', fontSize: 13, fontWeight: 700,
+                            background: activeTab === tab.id
+                              ? (tab.id === 'guide' ? 'linear-gradient(135deg, rgba(129,140,248,0.3), rgba(168,85,247,0.2))' : 'rgba(56,189,248,0.15)')
+                              : 'transparent',
+                            color: activeTab === tab.id
+                              ? (tab.id === 'guide' ? '#c084fc' : '#38bdf8')
+                              : '#475569',
+                            boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                            transition: 'all 0.18s',
+                          }}
+                        >
+                          {tab.icon}
+                          {tab.label}
+                          {tab.id === 'guide' && activeTab !== 'guide' && (
+                            <span style={{
+                              fontSize: 9, fontWeight: 800, padding: '1px 5px',
+                              borderRadius: 4, background: 'rgba(168,85,247,0.2)',
+                              color: '#c084fc', textTransform: 'uppercase', letterSpacing: 0.5,
+                            }}>AI</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tab content */}
+                    <AnimatePresence mode="wait">
+                      {activeTab === 'video' ? (
+                        <motion.div
+                          key="video-tab"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <VideoPlayer
+                            lesson={activeLesson}
+                            onComplete={handleCompleteLesson}
+                            isCompleted={user.completedLessons.includes(activeLesson?.id)}
+                            videoUrl={videoUrls[activeLesson?.id]}
+                            isAdmin={isAdmin}
+                            onGoToAdmin={() => navigate('/admin')}
+                          />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="guide-tab"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <StudyGuide
+                            lesson={activeLesson}
+                            courseId={courseId}
+                            chapterTitle={course.modules.find(m => m.lessons.some(l => l.id === activeLesson.id))?.title || ''}
+                            courseTitle={course.title}
+                            isAdmin={isAdmin}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
               </motion.div>
             </AnimatePresence>
