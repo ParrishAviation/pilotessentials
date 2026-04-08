@@ -212,12 +212,35 @@ function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, l
   );
 }
 
+function buildFinalTest(courseId, count = 60) {
+  // Pool all questions from every quiz in this course's QUIZ_BANK entries
+  const course = COURSES.find(c => c.id === courseId);
+  if (!course) return null;
+  const allLessonIds = course.modules.flatMap(m => m.lessons).map(l => l.id);
+  let pool = [];
+  for (const id of allLessonIds) {
+    if (QUIZ_BANK[id]) pool = pool.concat(QUIZ_BANK[id].questions);
+  }
+  // Shuffle using Fisher-Yates, then take `count`
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return {
+    title: 'Private Pilot End of Course Test',
+    questions: pool.slice(0, Math.min(count, pool.length)),
+  };
+}
+
 export default function Quiz() {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
   const { user, completeLesson, saveQuizScore } = useUser();
 
-  const quizData = QUIZ_BANK[lessonId];
+  const isFinalTest = lessonId === 'ppl-final-test';
+  const [finalTestData] = useState(() => isFinalTest ? buildFinalTest(courseId, 60) : null);
+
+  const quizData = isFinalTest ? finalTestData : QUIZ_BANK[lessonId];
   const course = COURSES.find(c => c.id === courseId);
   const lesson = course?.modules.flatMap(m => m.lessons).find(l => l.id === lessonId);
 
