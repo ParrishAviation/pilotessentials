@@ -1,9 +1,66 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Trophy, Zap, RotateCcw, Home, ArrowRight } from 'lucide-react';
-import { QUIZ_BANK, COURSES } from '../data/courses';
+import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Trophy, Zap, RotateCcw, Home, ArrowRight, BookOpen, ExternalLink } from 'lucide-react';
+import { QUIZ_BANK, COURSES, FIGURE_PAGES, FAA_SUPPLEMENT_PDF } from '../data/courses';
 import { useUser } from '../context/UserContext';
+
+// Parse figure numbers from question text e.g. "Refer to figure 8" → [8]
+function parseFigures(text) {
+  const matches = [...text.matchAll(/figure\s+(\d+)/gi)];
+  const nums = [...new Set(matches.map(m => parseInt(m[1], 10)))];
+  return nums;
+}
+
+function FigureBanner({ questionText }) {
+  const figNums = parseFigures(questionText);
+  if (figNums.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10,
+        padding: '12px 18px', borderRadius: 12, marginBottom: 16,
+        background: 'rgba(56,189,248,0.08)',
+        border: '1px solid rgba(56,189,248,0.25)',
+      }}
+    >
+      <BookOpen size={15} color="#38bdf8" style={{ flexShrink: 0 }} />
+      <span style={{ fontSize: 13, color: '#7dd3fc', fontWeight: 600 }}>
+        This question references the FAA Supplement:
+      </span>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {figNums.map(num => {
+          const page = FIGURE_PAGES[num];
+          const url = page
+            ? `${FAA_SUPPLEMENT_PDF}#page=${page}`
+            : FAA_SUPPLEMENT_PDF;
+          return (
+            <a
+              key={num}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 12px', borderRadius: 8,
+                background: 'rgba(56,189,248,0.15)',
+                border: '1px solid rgba(56,189,248,0.35)',
+                color: '#38bdf8', fontSize: 12, fontWeight: 700,
+                textDecoration: 'none', cursor: 'pointer',
+              }}
+            >
+              <ExternalLink size={11} />
+              View Figure {num}
+            </a>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
 
 function ProgressDots({ total, current, answers }) {
   return (
@@ -278,6 +335,8 @@ export default function Quiz() {
               <motion.div key={currentQ} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.25 }}>
                 {/* Question */}
                 <ProgressDots total={questions.length} current={currentQ} answers={answers} />
+
+                <FigureBanner questionText={q.question} />
 
                 <div style={{
                   background: 'rgba(255,255,255,0.03)',
