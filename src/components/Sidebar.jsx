@@ -1,8 +1,10 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut } from 'lucide-react';
+import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+
+const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 
 const navItems = [
   { to: '/', icon: Home, label: 'Dashboard' },
@@ -16,6 +18,7 @@ export default function Sidebar() {
   const { user: authUser, signOut } = useAuth();
   const location = useLocation();
   const displayName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Pilot';
+  const isAdmin = ADMIN_EMAILS.includes(authUser?.email);
 
   return (
     <aside style={{
@@ -127,6 +130,28 @@ export default function Sidebar() {
             </NavLink>
           );
         })}
+
+        {/* Admin link — only visible to master accounts */}
+        {isAdmin && (
+          <>
+            <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, padding: '16px 8px 4px' }}>Admin</div>
+            <NavLink
+              to="/admin"
+              className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`}
+              style={{
+                marginBottom: 2,
+                background: location.pathname === '/admin'
+                  ? 'rgba(129,140,248,0.15)'
+                  : 'rgba(129,140,248,0.06)',
+                border: '1px solid rgba(129,140,248,0.2)',
+              }}
+            >
+              <Shield size={17} color="#818cf8" />
+              <span style={{ color: '#818cf8' }}>Video Manager</span>
+              {location.pathname === '/admin' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#818cf8' }} />}
+            </NavLink>
+          </>
+        )}
       </nav>
 
       {/* Bottom */}

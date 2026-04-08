@@ -3,10 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Clock,
-  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText
+  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield
 } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
+
+const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 
 function LessonRow({ lesson, isCompleted, isActive, isLocked, onSelect }) {
   const typeIcon = lesson.type === 'quiz' ? <FileText size={14} /> : <Video size={14} />;
@@ -100,82 +104,107 @@ function ModuleSection({ module, completedLessons, activeLesson, onSelectLesson 
   );
 }
 
-function VideoPlayer({ lesson, onComplete, isCompleted }) {
+function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoToAdmin }) {
+  const videoRef = useRef(null);
   const [watched, setWatched] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [videoProgress, setVideoProgress] = useState(0);
 
-  // Simulate video progress for demo purposes
   useEffect(() => {
     setWatched(false);
-    setProgress(0);
+    setVideoProgress(0);
   }, [lesson.id]);
 
-  const handleSimulateWatch = () => {
-    setProgress(100);
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    const pct = (v.currentTime / v.duration) * 100;
+    setVideoProgress(pct);
+    if (pct >= 90 && !watched) setWatched(true);
+  };
+
+  const handleEnded = () => {
+    setVideoProgress(100);
     setWatched(true);
   };
 
   return (
     <div>
-      {/* Video placeholder */}
-      <div style={{
-        width: '100%', aspectRatio: '16/9',
-        background: 'linear-gradient(135deg, #0c1a2e, #0a1628)',
-        borderRadius: 16,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        border: '1px solid rgba(255,255,255,0.08)',
-        position: 'relative',
-        overflow: 'hidden',
-        marginBottom: 20,
-      }}>
-        {/* Star background */}
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            width: Math.random() * 3 + 1,
-            height: Math.random() * 3 + 1,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.3)',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }} />
-        ))}
+      {/* Video area */}
+      {videoUrl ? (
+        /* Real video player */
         <div style={{
-          position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.08) 0%, transparent 70%)',
-        }} />
-        <div style={{
-          width: 80, height: 80, borderRadius: '50%',
-          background: 'rgba(14,165,233,0.15)',
-          border: '2px solid rgba(14,165,233,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer',
-          boxShadow: '0 0 30px rgba(14,165,233,0.3)',
-          zIndex: 2,
-          transition: 'all 0.2s',
-        }}
-          onClick={handleSimulateWatch}
-          className="animate-pulse-glow"
-        >
-          <Play size={32} color="#38bdf8" style={{ marginLeft: 4 }} />
-        </div>
-        <div style={{ marginTop: 20, fontSize: 15, fontWeight: 600, color: '#94a3b8', zIndex: 2 }}>
-          {lesson.title}
-        </div>
-        <div style={{ fontSize: 12, color: '#475569', marginTop: 6, zIndex: 2 }}>
-          Upload your recorded video here • {lesson.duration}
-        </div>
-
-        {/* Video progress bar at bottom */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.08)' }}>
-          <motion.div
-            style={{ height: '100%', background: 'linear-gradient(90deg, #0ea5e9, #818cf8)' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5 }}
+          width: '100%', borderRadius: 16, overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.08)',
+          background: '#000', marginBottom: 20,
+          boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+          position: 'relative',
+        }}>
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            controls
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={handleEnded}
+            style={{ width: '100%', display: 'block', maxHeight: 480 }}
           />
+          {/* Gradient progress underline */}
+          <div style={{ height: 3, background: 'rgba(255,255,255,0.05)' }}>
+            <motion.div
+              style={{ height: '100%', background: 'linear-gradient(90deg, #0ea5e9, #818cf8)' }}
+              animate={{ width: `${videoProgress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Placeholder */
+        <div style={{
+          width: '100%', aspectRatio: '16/9',
+          background: 'linear-gradient(135deg, #0c1a2e, #0a1628)',
+          borderRadius: 16,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          border: '1px solid rgba(255,255,255,0.08)',
+          position: 'relative', overflow: 'hidden', marginBottom: 20,
+        }}>
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              width: Math.random() * 3 + 1, height: Math.random() * 3 + 1,
+              borderRadius: '50%', background: 'rgba(255,255,255,0.3)',
+              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
+            }} />
+          ))}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.08) 0%, transparent 70%)',
+          }} />
+          <Video size={40} color="rgba(56,189,248,0.25)" style={{ zIndex: 2, marginBottom: 14 }} />
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#475569', zIndex: 2, textAlign: 'center' }}>
+            {lesson.title}
+          </div>
+          <div style={{ fontSize: 12, color: '#334155', marginTop: 6, zIndex: 2 }}>
+            Video coming soon • {lesson.duration}
+          </div>
+          {isAdmin && (
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onGoToAdmin}
+              style={{
+                marginTop: 20, zIndex: 2,
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '9px 20px', borderRadius: 10, cursor: 'pointer',
+                background: 'rgba(129,140,248,0.15)',
+                border: '1px solid rgba(129,140,248,0.35)',
+                color: '#818cf8', fontSize: 13, fontWeight: 700,
+              }}
+            >
+              <Shield size={14} /> Upload Video in Admin Panel
+            </motion.button>
+          )}
+        </div>
+      )}
 
       {/* Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -228,13 +257,31 @@ export default function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { user, completeLesson, completeModule, completeCourse, enrollInCourse } = useUser();
+  const { user: authUser } = useAuth();
 
   const course = COURSES.find(c => c.id === courseId);
   if (!course) return <div style={{ padding: 40, color: '#94a3b8' }}>Course not found.</div>;
 
+  const isAdmin = ADMIN_EMAILS.includes(authUser?.email);
   const allLessons = course.modules.flatMap(m => m.lessons);
   const firstUncompleted = allLessons.find(l => !user.completedLessons.includes(l.id));
   const [activeLesson, setActiveLesson] = useState(firstUncompleted || allLessons[0]);
+  const [videoUrls, setVideoUrls] = useState({});
+
+  // Fetch video URLs for this course
+  useEffect(() => {
+    supabase
+      .from('lesson_videos')
+      .select('lesson_id, video_url')
+      .eq('course_id', courseId)
+      .then(({ data }) => {
+        if (data) {
+          const map = {};
+          data.forEach(r => { map[r.lesson_id] = r.video_url; });
+          setVideoUrls(map);
+        }
+      });
+  }, [courseId]);
 
   const isEnrolled = user.enrolledCourses.includes(course.id);
   const totalDone = allLessons.filter(l => user.completedLessons.includes(l.id)).length;
@@ -410,6 +457,9 @@ export default function CourseDetail() {
                     lesson={activeLesson}
                     onComplete={handleCompleteLesson}
                     isCompleted={user.completedLessons.includes(activeLesson?.id)}
+                    videoUrl={videoUrls[activeLesson?.id]}
+                    isAdmin={isAdmin}
+                    onGoToAdmin={() => navigate('/admin')}
                   />
                 )}
               </motion.div>

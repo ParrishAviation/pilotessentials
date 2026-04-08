@@ -9,6 +9,7 @@ import CourseDetail from './pages/CourseDetail';
 import Quiz from './pages/Quiz';
 import Profile from './pages/Profile';
 import Leaderboard from './pages/Leaderboard';
+import AdminPanel from './pages/AdminPanel';
 
 function LoadingScreen() {
   return (
@@ -52,6 +53,7 @@ function AppRoutes() {
     <UserProvider>
       <Routes>
         <Route path="/quiz/:courseId/:lessonId" element={<Quiz />} />
+        <Route path="/admin" element={<AdminPanel />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/courses" element={<CourseCatalog />} />
