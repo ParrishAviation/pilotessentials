@@ -50,7 +50,7 @@ export default function Sidebar() {
           </div>
           <div>
             <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: '#f1f5f9', letterSpacing: '-0.5px' }}>
-              SkyAce
+              Pilot Essentials
             </div>
             <div style={{ fontSize: 10, color: '#64748b', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>
               Pilot Training

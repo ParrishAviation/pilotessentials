@@ -91,7 +91,7 @@ export default function Auth() {
                 fontSize: 22, boxShadow: '0 4px 20px rgba(14,165,233,0.4)',
               }}>✈️</div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.5px' }}>SkyAce</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.5px' }}>Pilot Essentials</div>
                 <div style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Pilot Training</div>
               </div>
             </div>
@@ -176,7 +176,7 @@ export default function Auth() {
               transition={{ duration: 0.2 }}
             >
               <h3 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: '0 0 6px', fontFamily: "'Space Grotesk', sans-serif" }}>
-                {mode === 'signin' ? 'Welcome back!' : 'Join SkyAce'}
+                {mode === 'signin' ? 'Welcome back!' : 'Join Pilot Essentials'}
               </h3>
               <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 28px' }}>
                 {mode === 'signin' ? 'Sign in to continue your training.' : 'Create your free pilot training account.'}
