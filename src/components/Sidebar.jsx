@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 
 const navItems = [
-  { to: '/', icon: Home, label: 'Dashboard' },
+  { to: '/app', icon: Home, label: 'Dashboard' },
   { to: '/courses', icon: BookOpen, label: 'Courses' },
   { to: '/ai-instructor', icon: null, label: 'AI Instructor', emoji: '✈️' },
   { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
