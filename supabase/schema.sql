@@ -184,6 +184,27 @@ create policy "Admins can restore lessons" on public.hidden_lessons
     auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
   );
 
+-- ============================================================
+-- Purchases — tracks Square payments per user
+-- ============================================================
+create table if not exists public.purchases (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  plan text not null check (plan in ('full_access', 'cfi_mentorship')),
+  square_payment_id text not null unique,
+  amount_cents integer not null,
+  status text not null default 'completed',
+  cfi_access_expires_at timestamptz,  -- set to now() + 12 months for cfi_mentorship
+  created_at timestamptz not null default now()
+);
+alter table public.purchases enable row level security;
+create policy "Users can view own purchases" on public.purchases
+  for select using (auth.uid() = user_id);
+-- Only the service role (server-side) can insert purchases
+create policy "Service role can insert purchases" on public.purchases
+  for insert with check (true);
+
+-- ============================================================
 -- Leaderboard view (public, shows top 50 by XP)
 create or replace view public.leaderboard as
   select

@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import Leaderboard from './pages/Leaderboard';
 import AdminPanel from './pages/AdminPanel';
 import AIInstructor from './pages/AIInstructor';
+import Checkout from './pages/Checkout';
 
 // Blog pages
 import BlogIndex from './pages/blog/BlogIndex';
@@ -91,6 +92,8 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Auth />} />
+        {/* Checkout — public so unauthenticated users can browse, login prompt inside */}
+        <Route path="/checkout" element={<Checkout />} />
         {/* Blog routes — always public */}
         <Route path="/blog" element={<BlogIndex />} />
         <Route path="/faa-written-test-prep" element={<FAAWrittenTestPrep />} />
@@ -115,6 +118,8 @@ function AppRoutes() {
       {/* Redirect landing and login to the app if already logged in */}
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="/login" element={<Navigate to="/app" replace />} />
+      {/* Checkout accessible while logged in */}
+      <Route path="/checkout" element={<Checkout />} />
       {/* Blog routes — accessible while logged in too */}
       <Route path="/blog" element={<BlogIndex />} />
       <Route path="/faa-written-test-prep" element={<FAAWrittenTestPrep />} />

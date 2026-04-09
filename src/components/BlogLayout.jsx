@@ -21,7 +21,7 @@ export function TopCTA() {
           ✈️ Ready to ace your FAA written test? Get the complete ground school — 17 chapters, AI study guides, and 1,000+ practice questions.
         </span>
         <button
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/checkout?plan=full_access')}
           style={{
             background: '#fff', color: '#0ea5e9',
             border: 'none', borderRadius: 8,
@@ -85,7 +85,7 @@ export function BottomCTA({ headline, sub }) {
           Start Free <ArrowRight size={16} />
         </button>
         <button
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/checkout?plan=full_access')}
           style={{
             background: 'rgba(255,255,255,0.05)',
             color: '#94a3b8', border: '1px solid rgba(255,255,255,0.12)',
@@ -96,7 +96,7 @@ export function BottomCTA({ headline, sub }) {
           Full Access — $399
         </button>
         <button
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/checkout?plan=cfi_mentorship')}
           style={{
             background: 'linear-gradient(135deg, #f59e0b, #d97706)',
             color: '#fff', border: 'none', borderRadius: 12,
