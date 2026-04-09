@@ -615,7 +615,7 @@ function FeaturesSection({ onLogin }) {
 }
 
 // ─── Pricing ──────────────────────────────────────────────────────────────────
-function PricingSection({ onLogin }) {
+function PricingSection({ onLogin, onCheckout }) {
   return (
     <section id="pricing" style={{
       padding: '100px 24px',
@@ -726,7 +726,7 @@ function PricingSection({ onLogin }) {
                 <span style={{ fontSize: 14, color: '#e2e8f0' }}>{item}</span>
               </div>
             ))}
-            <button onClick={onLogin} style={{
+            <button onClick={() => onCheckout('full_access')} style={{
               marginTop: 24, width: '100%', padding: '15px',
               borderRadius: 10,
               background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
@@ -737,7 +737,7 @@ function PricingSection({ onLogin }) {
             }}
               onMouseEnter={e => e.target.style.opacity = 0.85}
               onMouseLeave={e => e.target.style.opacity = 1}
-            >Get Full Access →</button>
+            >Get Full Access — $399 →</button>
           </motion.div>
 
           {/* CFI Mentorship — $999 */}
@@ -778,7 +778,7 @@ function PricingSection({ onLogin }) {
                 <span style={{ fontSize: 14, color: i === 0 ? '#94a3b8' : '#fde68a' }}>{item}</span>
               </div>
             ))}
-            <button onClick={onLogin} style={{
+            <button onClick={() => onCheckout('cfi_mentorship')} style={{
               marginTop: 24, width: '100%', padding: '15px',
               borderRadius: 10,
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -789,7 +789,7 @@ function PricingSection({ onLogin }) {
             }}
               onMouseEnter={e => e.target.style.opacity = 0.85}
               onMouseLeave={e => e.target.style.opacity = 1}
-            >Get CFI Mentorship →</button>
+            >Get CFI Mentorship — $999 →</button>
           </motion.div>
         </div>
 
@@ -895,14 +895,14 @@ function FAQSection() {
 }
 
 // ─── Bottom CTA ───────────────────────────────────────────────────────────────
-function BottomCTA({ onLogin }) {
+function BottomCTA({ onLogin, onCheckout }) {
   return (
     <section style={{
       padding: '100px 24px',
       borderTop: '1px solid rgba(255,255,255,0.06)',
       background: 'radial-gradient(ellipse 60% 80% at 50% 100%, rgba(14,165,233,0.12) 0%, transparent 70%)',
     }}>
-      <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -917,25 +917,52 @@ function BottomCTA({ onLogin }) {
             Your Private Pilot Certificate Starts Here
           </h2>
           <p style={{ fontSize: 17, color: '#64748b', marginBottom: 40, lineHeight: 1.6 }}>
-            Join students who passed the FAA written with Pilot Essentials. Start free today — no credit card required.
+            Join students who passed the FAA written with Pilot Essentials. Start free, or go all-in with full access or CFI mentorship.
           </p>
-          <button onClick={onLogin} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            padding: '18px 44px', borderRadius: 14,
-            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-            border: 'none', color: '#fff',
-            fontSize: 18, fontWeight: 800,
-            cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s',
-            boxShadow: '0 10px 40px rgba(14,165,233,0.4)',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 50px rgba(14,165,233,0.5)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 10px 40px rgba(14,165,233,0.4)'; }}
-          >
-            Start Learning Free <ArrowRight size={20} />
-          </button>
-          <div style={{ marginTop: 20, fontSize: 13, color: '#334155' }}>
-            Free account · No credit card · Instant access
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+            <button onClick={onLogin} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '15px 32px', borderRadius: 12,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#e2e8f0', fontSize: 15, fontWeight: 700,
+              cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              Start Free
+            </button>
+            <button onClick={() => onCheckout('full_access')} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '15px 32px', borderRadius: 12,
+              background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+              border: 'none', color: '#fff',
+              fontSize: 15, fontWeight: 800,
+              cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 8px 30px rgba(14,165,233,0.4)',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+            >
+              Full Access — $399 <ArrowRight size={16} />
+            </button>
+            <button onClick={() => onCheckout('cfi_mentorship')} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '15px 32px', borderRadius: 12,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              border: 'none', color: '#fff',
+              fontSize: 15, fontWeight: 800,
+              cursor: 'pointer', transition: 'transform 0.2s',
+              boxShadow: '0 8px 30px rgba(245,158,11,0.35)',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+            >
+              CFI Mentorship — $999
+            </button>
+          </div>
+          <div style={{ fontSize: 13, color: '#334155' }}>
+            Free account · No credit card · Instant access · Secure checkout via Square
           </div>
         </motion.div>
       </div>
@@ -1027,18 +1054,19 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   const goToLogin = () => navigate('/login');
+  const goToCheckout = (plan) => navigate(`/checkout?plan=${plan}`);
 
   return (
     <div style={{ background: '#060f1e', minHeight: '100vh', color: '#f1f5f9' }}>
       <StructuredData />
       <Navbar onLogin={goToLogin} />
-      <Hero onLogin={goToLogin} />
+      <Hero onLogin={goToLogin} onCheckout={goToCheckout} />
       <StatsBar />
       <CurriculumSection onLogin={goToLogin} />
       <FeaturesSection onLogin={goToLogin} />
-      <PricingSection onLogin={goToLogin} />
+      <PricingSection onLogin={goToLogin} onCheckout={goToCheckout} />
       <FAQSection />
-      <BottomCTA onLogin={goToLogin} />
+      <BottomCTA onLogin={goToLogin} onCheckout={goToCheckout} />
       <Footer onLogin={goToLogin} />
     </div>
   );
