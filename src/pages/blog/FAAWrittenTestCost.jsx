@@ -173,7 +173,7 @@ export default function FAAWrittenTestCost() {
         The written test is one of many costs in your pilot training journey. Here's a realistic overview:
       </p>
       {[
-        { item: 'Ground school / online course', cost: '$0–$500', note: 'Free resources available; structured courses cost $99–$499' },
+        { item: 'Ground school / online course', cost: '$0–$999', note: 'Free resources available; Pilot Essentials Full Access $399, CFI Mentorship $999' },
         { item: 'FAA written test (PAR)', cost: '$175–$200', note: 'One-time fee at CATS or PSI testing center' },
         { item: 'Flight training (40–70 hours)', cost: '$8,000–$15,000', note: 'Biggest variable — depends on aircraft rental + CFI rates' },
         { item: 'Medical certificate (3rd class)', cost: '$100–$200', note: 'One-time exam with an FAA Aviation Medical Examiner (AME)' },

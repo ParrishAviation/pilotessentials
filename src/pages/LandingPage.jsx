@@ -706,16 +706,16 @@ function PricingSection({ onLogin }) {
             color: '#f1f5f9', margin: '0 0 16px',
             fontFamily: "'Space Grotesk', sans-serif", letterSpacing: -0.8,
           }}>
-            Less Than One Hour of Flight Time
+            Invest in Your Wings
           </h2>
-          <p style={{ fontSize: 16, color: '#64748b', maxWidth: 500, margin: '0 auto' }}>
-            Get lifetime access to all 17 chapters, AI instructor, study guides, and practice exams.
+          <p style={{ fontSize: 16, color: '#64748b', maxWidth: 560, margin: '0 auto' }}>
+            Choose your path — self-paced ground school or hands-on CFI mentorship. Both include lifetime access and everything you need to ace your FAA written test.
           </p>
         </motion.div>
 
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: 24, maxWidth: 900, margin: '0 auto',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: 24, maxWidth: 1100, margin: '0 auto',
         }}>
           {/* Free tier */}
           <motion.div
@@ -752,7 +752,7 @@ function PricingSection({ onLogin }) {
             }}>Get Started Free</button>
           </motion.div>
 
-          {/* Full access */}
+          {/* Full access — $399 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -774,7 +774,7 @@ function PricingSection({ onLogin }) {
             }}>MOST POPULAR</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#38bdf8', marginBottom: 12 }}>Full Access</div>
             <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 48, fontWeight: 900, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>$99</span>
+              <span style={{ fontSize: 48, fontWeight: 900, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>$399</span>
             </div>
             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>One-time payment — lifetime access</div>
             {[
@@ -804,6 +804,59 @@ function PricingSection({ onLogin }) {
               onMouseEnter={e => e.target.style.opacity = 0.85}
               onMouseLeave={e => e.target.style.opacity = 1}
             >Get Full Access →</button>
+          </motion.div>
+
+          {/* CFI Mentorship — $999 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            style={{
+              borderRadius: 20, padding: '36px 32px',
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(217,119,6,0.08) 100%)',
+              border: '2px solid rgba(245,158,11,0.35)',
+              position: 'relative',
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)',
+              padding: '4px 18px', borderRadius: 100,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              fontSize: 12, fontWeight: 800, color: '#fff',
+              whiteSpace: 'nowrap',
+            }}>CFI MENTORSHIP</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#f59e0b', marginBottom: 12 }}>Full Access + Live CFI</div>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 48, fontWeight: 900, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>$999</span>
+            </div>
+            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>One-time payment — includes 12 months of live CFI access</div>
+            {[
+              'Everything in Full Access',
+              '12-month live CFI chat room access',
+              'Ask real CFIs your questions daily',
+              'Exclusive 7-page expert study guide',
+              'Priority support & checkride Q&A',
+              'CFI-reviewed study sessions',
+              'Small-group mentorship community',
+            ].map((item, i) => (
+              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <CheckCircle size={16} color={i === 0 ? '#94a3b8' : '#f59e0b'} />
+                <span style={{ fontSize: 14, color: i === 0 ? '#94a3b8' : '#fde68a' }}>{item}</span>
+              </div>
+            ))}
+            <button onClick={onLogin} style={{
+              marginTop: 24, width: '100%', padding: '15px',
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              border: 'none', color: '#fff', fontSize: 15, fontWeight: 800,
+              cursor: 'pointer', transition: 'opacity 0.2s',
+              boxShadow: '0 6px 24px rgba(245,158,11,0.35)',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
+              onMouseEnter={e => e.target.style.opacity = 0.85}
+              onMouseLeave={e => e.target.style.opacity = 1}
+            >Get CFI Mentorship →</button>
           </motion.div>
         </div>
 
