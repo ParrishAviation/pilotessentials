@@ -836,7 +836,6 @@ function PricingSection({ onLogin }) {
               '12-month live CFI chat room access',
               'Ask real CFIs your questions daily',
               'Exclusive 7-page expert study guide',
-              'Priority support & checkride Q&A',
               'CFI-reviewed study sessions',
               'Small-group mentorship community',
             ].map((item, i) => (
