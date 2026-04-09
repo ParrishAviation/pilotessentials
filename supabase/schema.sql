@@ -164,6 +164,26 @@ create policy "Admins can delete course videos" on storage.objects
     auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
   );
 
+-- Hidden Lessons (admin-managed, hides lessons from all users)
+create table if not exists public.hidden_lessons (
+  id uuid default gen_random_uuid() primary key,
+  lesson_id text not null unique,
+  course_id text not null,
+  hidden_by uuid references auth.users(id),
+  hidden_at timestamptz default now()
+);
+alter table public.hidden_lessons enable row level security;
+create policy "Anyone can view hidden lessons" on public.hidden_lessons
+  for select using (true);
+create policy "Admins can hide lessons" on public.hidden_lessons
+  for insert with check (
+    auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+  );
+create policy "Admins can restore lessons" on public.hidden_lessons
+  for delete using (
+    auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+  );
+
 -- Leaderboard view (public, shows top 50 by XP)
 create or replace view public.leaderboard as
   select

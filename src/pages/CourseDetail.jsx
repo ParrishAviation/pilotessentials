@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Clock,
-  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield, BookMarked
+  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield, BookMarked,
+  Trash2, RotateCcw
 } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
@@ -56,7 +57,8 @@ function expandModules(modules) {
   }));
 }
 
-function LessonRow({ lesson, isCompleted, isActive, isLocked, onSelect }) {
+function LessonRow({ lesson, isCompleted, isActive, isLocked, isHidden, isAdmin, onSelect, onDelete, onRestore }) {
+  const [hovered, setHovered] = useState(false);
   const isGuide = lesson.type === 'guide';
   const isQuiz = lesson.type === 'quiz';
 
@@ -69,8 +71,14 @@ function LessonRow({ lesson, isCompleted, isActive, isLocked, onSelect }) {
   return (
     <div
       className={`lesson-item ${isActive ? 'active' : ''}`}
-      onClick={!isLocked ? onSelect : undefined}
-      style={{ opacity: isLocked ? 0.4 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
+      onClick={!isLocked && !isHidden ? onSelect : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        opacity: isLocked ? 0.4 : isHidden ? 0.35 : 1,
+        cursor: isLocked || isHidden ? 'default' : 'pointer',
+        position: 'relative',
+      }}
     >
       <div style={{
         width: 32, height: 32, borderRadius: 8, flexShrink: 0,
@@ -97,23 +105,59 @@ function LessonRow({ lesson, isCompleted, isActive, isLocked, onSelect }) {
             : isCompleted ? '#4ade80'
             : (isGuide ? '#b0a4e8' : '#e2e8f0'),
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          textDecoration: isHidden ? 'line-through' : 'none',
         }}>
           {lesson._displayTitle || lesson.title}
         </div>
         <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{lesson.duration}</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        <Zap size={10} color="#f59e0b" />
-        <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>+{lesson.xp}</span>
-      </div>
+
+      {/* Admin delete/restore — shown on hover */}
+      {isAdmin && hovered ? (
+        isHidden ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRestore(lesson.id); }}
+            title="Restore lesson"
+            style={{
+              flexShrink: 0, padding: '4px 8px', borderRadius: 6, cursor: 'pointer',
+              background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.35)',
+              color: '#4ade80', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700,
+            }}
+          >
+            <RotateCcw size={11} /> Restore
+          </button>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(lesson.id); }}
+            title="Hide lesson"
+            style={{
+              flexShrink: 0, padding: '4px 8px', borderRadius: 6, cursor: 'pointer',
+              background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
+              color: '#f87171', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700,
+            }}
+          >
+            <Trash2 size={11} /> Delete
+          </button>
+        )
+      ) : !isHidden && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <Zap size={10} color="#f59e0b" />
+          <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>+{lesson.xp}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function ModuleSection({ module, completedLessons, activeLesson, onSelectLesson }) {
+function ModuleSection({ module, completedLessons, activeLesson, hiddenLessons, isAdmin, onSelectLesson, onDeleteLesson, onRestoreLesson }) {
   const [open, setOpen] = useState(true);
-  const total = module.lessons.length;
-  const done = module.lessons.filter(l => completedLessons.includes(l.id)).length;
+  // For progress count, exclude hidden lessons (unless admin)
+  const visibleLessons = isAdmin ? module.lessons : module.lessons.filter(l => !hiddenLessons.has(l.id));
+  const total = visibleLessons.length;
+  const done = visibleLessons.filter(l => completedLessons.includes(l.id)).length;
+
+  // Admins see all lessons (hidden ones dimmed); students see only visible ones
+  const displayLessons = isAdmin ? module.lessons : visibleLessons;
 
   return (
     <div style={{ marginBottom: 8 }}>
@@ -133,7 +177,7 @@ function ModuleSection({ module, completedLessons, activeLesson, onSelectLesson 
         </div>
         {done === total && total > 0 && <CheckCircle size={14} color="#4ade80" />}
         <div style={{ height: 4, width: 60, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'linear-gradient(90deg, #0ea5e9, #818cf8)', width: `${(done / total) * 100}%`, borderRadius: 2 }} />
+          <div style={{ height: '100%', background: 'linear-gradient(90deg, #0ea5e9, #818cf8)', width: `${total ? (done / total) * 100 : 0}%`, borderRadius: 2 }} />
         </div>
         {open ? <ChevronUp size={14} color="#64748b" /> : <ChevronDown size={14} color="#64748b" />}
       </button>
@@ -146,14 +190,18 @@ function ModuleSection({ module, completedLessons, activeLesson, onSelectLesson 
             transition={{ duration: 0.25 }}
             style={{ overflow: 'hidden', paddingLeft: 8 }}
           >
-            {module.lessons.map((lesson) => (
+            {displayLessons.map((lesson) => (
               <LessonRow
                 key={lesson.id}
                 lesson={lesson}
                 isCompleted={completedLessons.includes(lesson.id)}
                 isActive={activeLesson?.id === lesson.id}
                 isLocked={false}
+                isHidden={hiddenLessons.has(lesson.id)}
+                isAdmin={isAdmin}
                 onSelect={() => onSelectLesson(lesson)}
+                onDelete={onDeleteLesson}
+                onRestore={onRestoreLesson}
               />
             ))}
           </motion.div>
@@ -357,6 +405,7 @@ export default function CourseDetail() {
   const firstUncompleted = allLessons.find(l => !user.completedLessons.includes(l.id));
   const [activeLesson, setActiveLesson] = useState(firstUncompleted || allLessons[0]);
   const [videoUrls, setVideoUrls] = useState({});
+  const [hiddenLessons, setHiddenLessons] = useState(new Set());
 
   // Fetch video URLs for this course
   useEffect(() => {
@@ -372,6 +421,40 @@ export default function CourseDetail() {
         }
       });
   }, [courseId]);
+
+  // Fetch hidden lesson IDs for this course
+  useEffect(() => {
+    supabase
+      .from('hidden_lessons')
+      .select('lesson_id')
+      .eq('course_id', courseId)
+      .then(({ data }) => {
+        if (data) setHiddenLessons(new Set(data.map(r => r.lesson_id)));
+      });
+  }, [courseId]);
+
+  const handleDeleteLesson = async (lessonId) => {
+    const { error } = await supabase.from('hidden_lessons').insert({
+      lesson_id: lessonId,
+      course_id: courseId,
+      hidden_by: authUser.id,
+    });
+    if (!error) {
+      setHiddenLessons(prev => new Set([...prev, lessonId]));
+      // If the deleted lesson is currently active, move to the next visible one
+      if (activeLesson?.id === lessonId) {
+        const next = allLessons.find(l => l.id !== lessonId && !hiddenLessons.has(l.id));
+        if (next) setActiveLesson(next);
+      }
+    }
+  };
+
+  const handleRestoreLesson = async (lessonId) => {
+    const { error } = await supabase.from('hidden_lessons').delete().eq('lesson_id', lessonId);
+    if (!error) {
+      setHiddenLessons(prev => { const s = new Set(prev); s.delete(lessonId); return s; });
+    }
+  };
 
   const isEnrolled = user.enrolledCourses.includes(course.id);
   const totalDone = allLessons.filter(l => user.completedLessons.includes(l.id)).length;
@@ -466,6 +549,8 @@ export default function CourseDetail() {
               module={module}
               completedLessons={user.completedLessons}
               activeLesson={activeLesson}
+              hiddenLessons={hiddenLessons}
+              isAdmin={isAdmin}
               onSelectLesson={(lesson) => {
                 if (lesson.type === 'quiz') {
                   navigate(`/quiz/${courseId}/${lesson.id}`);
@@ -473,6 +558,8 @@ export default function CourseDetail() {
                   setActiveLesson(lesson);
                 }
               }}
+              onDeleteLesson={handleDeleteLesson}
+              onRestoreLesson={handleRestoreLesson}
             />
           ))}
         </div>
