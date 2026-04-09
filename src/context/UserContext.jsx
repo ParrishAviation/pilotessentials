@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-import { BADGES } from '../data/courses';
+import { BADGES } from '../data/courses'; // fixed path
 
 const UserContext = createContext(null);
 
