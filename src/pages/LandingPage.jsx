@@ -614,72 +614,6 @@ function FeaturesSection({ onLogin }) {
   );
 }
 
-// ─── Social proof / testimonials ──────────────────────────────────────────────
-function TestimonialsSection() {
-  const reviews = [
-    { name: 'Marcus T.', rating: 5, text: 'Passed my PAR written with a 94%. The AI study guides for every lesson made reviewing so much faster than traditional textbooks.' },
-    { name: 'Sarah K.', rating: 5, text: 'The AI instructor answered every question I had at 11pm the night before my written test. It\'s like having a CFI available 24/7.' },
-    { name: 'James R.', rating: 5, text: 'Finally a ground school that actually feels like a modern app. XP, badges, leaderboard — I actually wanted to study.' },
-    { name: 'Priya M.', rating: 5, text: 'The 60-question final exam randomized from 1,000+ questions is exactly what you need to prepare for the real FAA test format.' },
-  ];
-
-  return (
-    <section style={{ padding: '80px 24px' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          style={{ textAlign: 'center', marginBottom: 48 }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 3, marginBottom: 12 }}>
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={20} fill="#f59e0b" color="#f59e0b" />
-            ))}
-          </div>
-          <h2 style={{
-            fontSize: 'clamp(24px, 3.5vw, 40px)', fontWeight: 900,
-            color: '#f1f5f9', margin: '0 0 12px',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>Students Are Passing</h2>
-          <p style={{ fontSize: 15, color: '#64748b' }}>Join hundreds of student pilots on their way to the cockpit</p>
-        </motion.div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap: 18,
-        }}>
-          {reviews.map((r, i) => (
-            <motion.div
-              key={r.name}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
-              style={{
-                borderRadius: 16, padding: '22px',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.07)',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 2, marginBottom: 14 }}>
-                {[...Array(r.rating)].map((_, j) => (
-                  <Star key={j} size={14} fill="#f59e0b" color="#f59e0b" />
-                ))}
-              </div>
-              <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.65, margin: '0 0 16px' }}>
-                "{r.text}"
-              </p>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>— {r.name}</div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 function PricingSection({ onLogin }) {
   return (
@@ -1102,7 +1036,6 @@ export default function LandingPage() {
       <StatsBar />
       <CurriculumSection onLogin={goToLogin} />
       <FeaturesSection onLogin={goToLogin} />
-      <TestimonialsSection />
       <PricingSection onLogin={goToLogin} />
       <FAQSection />
       <BottomCTA onLogin={goToLogin} />
