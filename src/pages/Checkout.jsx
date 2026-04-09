@@ -93,18 +93,22 @@ export default function Checkout() {
         const card = await payments.card({
           style: {
             '.input-container': {
-              borderRadius: '10px',
-              borderColor: 'rgba(255,255,255,0.15)',
+              borderRadius: '8px',
+              borderColor: 'rgba(255,255,255,0.2)',
             },
             '.input-container.is-focus': {
-              borderColor: 'rgba(56,189,248,0.6)',
+              borderColor: '#38bdf8',
             },
             '.input-container.is-error': {
-              borderColor: 'rgba(239,68,68,0.6)',
+              borderColor: '#f87171',
             },
-            '.message-text': { color: '#94a3b8' },
+            '.message-text': { color: '#94a3b8', fontSize: '13px' },
             '.message-icon': { color: '#94a3b8' },
-            input: { color: '#f1f5f9', fontSize: '15px' },
+            input: {
+              color: '#ffffff',
+              fontSize: '15px',
+              fontWeight: '500',
+            },
           },
         });
 
@@ -409,10 +413,10 @@ export default function Checkout() {
                   ref={cardContainerRef}
                   style={{
                     minHeight: 89,
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: '#0f1f38',
+                    border: '1px solid rgba(255,255,255,0.15)',
                     borderRadius: 10,
-                    padding: '4px 2px',
+                    overflow: 'hidden',
                   }}
                 />
                 {!cardReady && !error && (
@@ -506,6 +510,16 @@ export default function Checkout() {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Force Square iframe to use dark background + high-contrast text */
+        #sq-card-container iframe {
+          background: #0f1f38 !important;
+          color-scheme: dark;
+        }
+        #sq-card-container .sq-card-wrapper,
+        #sq-card-container .sq-card-component {
+          background: #0f1f38 !important;
+        }
       `}</style>
     </div>
   );
