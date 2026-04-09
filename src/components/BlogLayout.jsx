@@ -62,7 +62,7 @@ export function BottomCTA({ headline, sub }) {
         {sub || 'Join thousands of student pilots who used Pilot Essentials to pass their FAA knowledge test. Start free — no credit card required.'}
       </p>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
-        {['17-Chapter Ground School', '1,000+ Practice Questions', 'AI Study Guides', 'Pass Guarantee'].map(f => (
+        {['17-Chapter Ground School', '1,000+ Practice Questions', 'AI Study Guides', 'Live CFI Chat Rooms'].map(f => (
           <div key={f} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             color: '#38bdf8', fontSize: 13, fontWeight: 600,
@@ -93,7 +93,18 @@ export function BottomCTA({ headline, sub }) {
             fontWeight: 700, fontSize: 16, cursor: 'pointer',
           }}
         >
-          Full Access — $99 One-Time
+          Full Access — $399
+        </button>
+        <button
+          onClick={() => navigate('/login')}
+          style={{
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            color: '#fff', border: 'none', borderRadius: 12,
+            padding: '14px 32px', fontWeight: 800, fontSize: 16,
+            cursor: 'pointer', boxShadow: '0 0 24px rgba(245,158,11,0.3)',
+          }}
+        >
+          CFI Mentorship — $999
         </button>
       </div>
     </div>
