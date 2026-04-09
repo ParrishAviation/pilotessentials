@@ -255,13 +255,14 @@ export default function AdminPanel() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       // Use TUS resumable upload — handles any file size, real progress events
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       await new Promise((resolve, reject) => {
         const upload = new tus.Upload(file, {
           endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
           retryDelays: [0, 1000, 3000, 5000],
           headers: {
             Authorization: `Bearer ${token}`,
-            'x-upsert': 'true',
+            apikey: anonKey,
           },
           uploadDataDuringCreation: true,
           removeFingerprintOnSuccess: true,
