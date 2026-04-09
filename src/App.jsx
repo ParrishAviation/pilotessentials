@@ -13,6 +13,20 @@ import Leaderboard from './pages/Leaderboard';
 import AdminPanel from './pages/AdminPanel';
 import AIInstructor from './pages/AIInstructor';
 
+// Blog pages
+import BlogIndex from './pages/blog/BlogIndex';
+import FAAWrittenTestPrep from './pages/blog/FAAWrittenTestPrep';
+import PrivatePilotWrittenTestPrep from './pages/blog/PrivatePilotWrittenTestPrep';
+import InstrumentRatingWrittenTestPrep from './pages/blog/InstrumentRatingWrittenTestPrep';
+import CommercialPilotWrittenTestPrep from './pages/blog/CommercialPilotWrittenTestPrep';
+import CFIWrittenTestPrep from './pages/blog/CFIWrittenTestPrep';
+import HowToPassFAAWrittenTest from './pages/blog/HowToPassFAAWrittenTest';
+import FAAWrittenPracticeTests from './pages/blog/FAAWrittenPracticeTests';
+import FAAWrittenTestQuestions from './pages/blog/FAAWrittenTestQuestions';
+import FAAWrittenTestCost from './pages/blog/FAAWrittenTestCost';
+import FAAWrittenTestPrepDallas from './pages/blog/FAAWrittenTestPrepDallas';
+import FAAWrittenTestPrepTexas from './pages/blog/FAAWrittenTestPrepTexas';
+
 function LoadingScreen() {
   return (
     <div style={{
@@ -77,6 +91,19 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Auth />} />
+        {/* Blog routes — always public */}
+        <Route path="/blog" element={<BlogIndex />} />
+        <Route path="/faa-written-test-prep" element={<FAAWrittenTestPrep />} />
+        <Route path="/private-pilot-written-test-prep" element={<PrivatePilotWrittenTestPrep />} />
+        <Route path="/instrument-rating-written-test-prep" element={<InstrumentRatingWrittenTestPrep />} />
+        <Route path="/commercial-pilot-written-test-prep" element={<CommercialPilotWrittenTestPrep />} />
+        <Route path="/cfi-written-test-prep" element={<CFIWrittenTestPrep />} />
+        <Route path="/how-to-pass-faa-written-test" element={<HowToPassFAAWrittenTest />} />
+        <Route path="/faa-written-practice-tests" element={<FAAWrittenPracticeTests />} />
+        <Route path="/faa-written-test-questions" element={<FAAWrittenTestQuestions />} />
+        <Route path="/faa-written-test-cost" element={<FAAWrittenTestCost />} />
+        <Route path="/faa-written-test-prep-dallas" element={<FAAWrittenTestPrepDallas />} />
+        <Route path="/faa-written-test-prep-texas" element={<FAAWrittenTestPrepTexas />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -88,6 +115,19 @@ function AppRoutes() {
       {/* Redirect landing and login to the app if already logged in */}
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="/login" element={<Navigate to="/app" replace />} />
+      {/* Blog routes — accessible while logged in too */}
+      <Route path="/blog" element={<BlogIndex />} />
+      <Route path="/faa-written-test-prep" element={<FAAWrittenTestPrep />} />
+      <Route path="/private-pilot-written-test-prep" element={<PrivatePilotWrittenTestPrep />} />
+      <Route path="/instrument-rating-written-test-prep" element={<InstrumentRatingWrittenTestPrep />} />
+      <Route path="/commercial-pilot-written-test-prep" element={<CommercialPilotWrittenTestPrep />} />
+      <Route path="/cfi-written-test-prep" element={<CFIWrittenTestPrep />} />
+      <Route path="/how-to-pass-faa-written-test" element={<HowToPassFAAWrittenTest />} />
+      <Route path="/faa-written-practice-tests" element={<FAAWrittenPracticeTests />} />
+      <Route path="/faa-written-test-questions" element={<FAAWrittenTestQuestions />} />
+      <Route path="/faa-written-test-cost" element={<FAAWrittenTestCost />} />
+      <Route path="/faa-written-test-prep-dallas" element={<FAAWrittenTestPrepDallas />} />
+      <Route path="/faa-written-test-prep-texas" element={<FAAWrittenTestPrepTexas />} />
       {/* All other app routes */}
       <Route path="/*" element={<AuthenticatedApp />} />
     </Routes>
