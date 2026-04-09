@@ -105,10 +105,26 @@ function ModuleSection({ module, completedLessons, activeLesson, onSelectLesson 
   );
 }
 
+function getGoogleDriveEmbedUrl(url) {
+  // Handles: /file/d/ID/view, /file/d/ID/edit, open?id=ID, uc?id=ID
+  const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch) return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+  return null;
+}
+
+function isGoogleDriveUrl(url) {
+  return url?.includes('drive.google.com');
+}
+
 function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoToAdmin }) {
   const videoRef = useRef(null);
   const [watched, setWatched] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
+
+  const isDrive = isGoogleDriveUrl(videoUrl);
+  const embedUrl = isDrive ? getGoogleDriveEmbedUrl(videoUrl) : null;
 
   useEffect(() => {
     setWatched(false);
@@ -132,7 +148,24 @@ function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoT
     <div>
       {/* Video area */}
       {videoUrl ? (
-        /* Real video player */
+        isDrive ? (
+          /* Google Drive embed */
+          <div style={{
+            width: '100%', borderRadius: 16, overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: '#000', marginBottom: 20,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+            position: 'relative', aspectRatio: '16/9',
+          }}>
+            <iframe
+              src={embedUrl}
+              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+              allow="autoplay"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+        /* Direct video player */
         <div style={{
           width: '100%', borderRadius: 16, overflow: 'hidden',
           border: '1px solid rgba(255,255,255,0.08)',
@@ -157,6 +190,7 @@ function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoT
             />
           </div>
         </div>
+        )
       ) : (
         /* Placeholder */
         <div style={{
