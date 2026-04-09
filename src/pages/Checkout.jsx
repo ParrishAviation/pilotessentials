@@ -71,15 +71,23 @@ export default function Checkout() {
       return;
     }
 
-    const scriptId = 'square-web-sdk';
-    const existing = document.getElementById(scriptId);
+    let destroyed = false;
+    let cardInstance = null;
 
     const initSquare = async () => {
+      // Poll until window.Square is available (handles script-already-exists case)
+      let attempts = 0;
+      while (!window.Square && attempts < 40) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+      if (destroyed) return;
+      if (!window.Square) {
+        setError('Payment SDK failed to load. Please refresh.');
+        return;
+      }
+
       try {
-        if (!window.Square) {
-          setError('Payment SDK failed to load. Please refresh.');
-          return;
-        }
         const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
         paymentsRef.current = payments;
 
@@ -103,29 +111,33 @@ export default function Checkout() {
           },
         });
 
+        if (destroyed) { card.destroy(); return; }
         await card.attach('#sq-card-container');
+        cardInstance = card;
         setSqCard(card);
         setCardReady(true);
       } catch (err) {
         console.error('Square init error:', err);
-        setError('Payment form failed to load. Please refresh the page.');
+        // Surface the actual Square error message to help diagnose domain/config issues
+        const msg = err?.message || JSON.stringify(err) || 'Unknown error';
+        setError(`Payment form error: ${msg}`);
       }
     };
 
-    if (existing) {
-      initSquare();
-    } else {
+    const scriptId = 'square-web-sdk';
+    if (!document.getElementById(scriptId)) {
       const script = document.createElement('script');
       script.id = scriptId;
       script.src = 'https://web.squarecdn.com/v1/square.js';
-      script.onload = initSquare;
-      script.onerror = () => setError('Failed to load payment SDK. Check your connection.');
+      script.onerror = () => setError('Failed to load Square SDK. Check your connection.');
       document.head.appendChild(script);
     }
+    // Always use the polling init (handles both fresh load and already-existing script)
+    initSquare();
 
     return () => {
-      // Cleanup card on unmount
-      sqCard?.destroy?.();
+      destroyed = true;
+      cardInstance?.destroy?.();
     };
   }, [planKey]);
 
