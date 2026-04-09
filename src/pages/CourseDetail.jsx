@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Clock,
-  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield, Brain
+  BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield, BookMarked
 } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
@@ -13,8 +13,44 @@ import StudyGuide from '../components/StudyGuide';
 
 const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 
+// Given a real lesson, return the injected Part 2 guide lesson object
+function makeGuidLesson(lesson) {
+  return {
+    id: `${lesson.id}-guide`,
+    title: `${lesson.title} — Study Guide`,
+    duration: '10 min read',
+    xp: Math.round(lesson.xp * 0.5),
+    type: 'guide',
+    _parentId: lesson.id,
+  };
+}
+
+// Returns true if the lesson id is a guide virtual lesson
+function isGuideLesson(id) {
+  return typeof id === 'string' && id.endsWith('-guide');
+}
+
+// Expand modules to include a Part 2 guide after every video lesson
+function expandModules(modules) {
+  return modules.map(mod => ({
+    ...mod,
+    lessons: mod.lessons.flatMap(lesson => {
+      if (lesson.type === 'video') return [lesson, makeGuidLesson(lesson)];
+      return [lesson];
+    }),
+  }));
+}
+
 function LessonRow({ lesson, isCompleted, isActive, isLocked, onSelect }) {
-  const typeIcon = lesson.type === 'quiz' ? <FileText size={14} /> : <Video size={14} />;
+  const isGuide = lesson.type === 'guide';
+  const isQuiz = lesson.type === 'quiz';
+
+  const typeIcon = isQuiz
+    ? <FileText size={13} />
+    : isGuide
+      ? <BookMarked size={13} />
+      : <Video size={13} />;
+
   return (
     <div
       className={`lesson-item ${isActive ? 'active' : ''}`}
@@ -27,17 +63,24 @@ function LessonRow({ lesson, isCompleted, isActive, isLocked, onSelect }) {
         background: isCompleted
           ? 'rgba(34,197,94,0.2)'
           : isActive
-            ? 'rgba(14,165,233,0.2)'
-            : 'rgba(255,255,255,0.05)',
-        border: `1px solid ${isCompleted ? 'rgba(34,197,94,0.4)' : isActive ? 'rgba(14,165,233,0.4)' : 'rgba(255,255,255,0.1)'}`,
-        color: isCompleted ? '#4ade80' : isActive ? '#38bdf8' : '#64748b',
+            ? (isGuide ? 'rgba(129,140,248,0.2)' : 'rgba(14,165,233,0.2)')
+            : (isGuide ? 'rgba(129,140,248,0.07)' : 'rgba(255,255,255,0.05)'),
+        border: `1px solid ${isCompleted
+          ? 'rgba(34,197,94,0.4)'
+          : isActive
+            ? (isGuide ? 'rgba(129,140,248,0.4)' : 'rgba(14,165,233,0.4)')
+            : (isGuide ? 'rgba(129,140,248,0.2)' : 'rgba(255,255,255,0.1)')}`,
+        color: isCompleted ? '#4ade80' : isActive ? (isGuide ? '#a78bfa' : '#38bdf8') : (isGuide ? '#7c6fcf' : '#64748b'),
       }}>
-        {isCompleted ? <CheckCircle size={14} /> : isLocked ? <Lock size={14} /> : typeIcon}
+        {isCompleted ? <CheckCircle size={13} /> : isLocked ? <Lock size={13} /> : typeIcon}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 13, fontWeight: 500,
-          color: isActive ? '#38bdf8' : isCompleted ? '#4ade80' : '#e2e8f0',
+          fontSize: 13, fontWeight: isGuide ? 500 : 500,
+          color: isActive
+            ? (isGuide ? '#a78bfa' : '#38bdf8')
+            : isCompleted ? '#4ade80'
+            : (isGuide ? '#b0a4e8' : '#e2e8f0'),
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {lesson.title}
@@ -88,7 +131,7 @@ function ModuleSection({ module, completedLessons, activeLesson, onSelectLesson 
             transition={{ duration: 0.25 }}
             style={{ overflow: 'hidden', paddingLeft: 8 }}
           >
-            {module.lessons.map((lesson, idx) => (
+            {module.lessons.map((lesson) => (
               <LessonRow
                 key={lesson.id}
                 lesson={lesson}
@@ -106,7 +149,6 @@ function ModuleSection({ module, completedLessons, activeLesson, onSelectLesson 
 }
 
 function getGoogleDriveEmbedUrl(url) {
-  // Handles: /file/d/ID/view, /file/d/ID/edit, open?id=ID, uc?id=ID
   const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (fileMatch) return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
   const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
@@ -146,10 +188,8 @@ function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoT
 
   return (
     <div>
-      {/* Video area */}
       {videoUrl ? (
         isDrive ? (
-          /* Google Drive embed */
           <div style={{
             width: '100%', borderRadius: 16, overflow: 'hidden',
             border: '1px solid rgba(255,255,255,0.08)',
@@ -165,34 +205,31 @@ function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoT
             />
           </div>
         ) : (
-        /* Direct video player */
-        <div style={{
-          width: '100%', borderRadius: 16, overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.08)',
-          background: '#000', marginBottom: 20,
-          boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
-          position: 'relative',
-        }}>
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            controls
-            onTimeUpdate={handleTimeUpdate}
-            onEnded={handleEnded}
-            style={{ width: '100%', display: 'block', maxHeight: 480 }}
-          />
-          {/* Gradient progress underline */}
-          <div style={{ height: 3, background: 'rgba(255,255,255,0.05)' }}>
-            <motion.div
-              style={{ height: '100%', background: 'linear-gradient(90deg, #0ea5e9, #818cf8)' }}
-              animate={{ width: `${videoProgress}%` }}
-              transition={{ duration: 0.3 }}
+          <div style={{
+            width: '100%', borderRadius: 16, overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: '#000', marginBottom: 20,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+            position: 'relative',
+          }}>
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              controls
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={handleEnded}
+              style={{ width: '100%', display: 'block', maxHeight: 480 }}
             />
+            <div style={{ height: 3, background: 'rgba(255,255,255,0.05)' }}>
+              <motion.div
+                style={{ height: '100%', background: 'linear-gradient(90deg, #0ea5e9, #818cf8)' }}
+                animate={{ width: `${videoProgress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
           </div>
-        </div>
         )
       ) : (
-        /* Placeholder */
         <div style={{
           width: '100%', aspectRatio: '16/9',
           background: 'linear-gradient(135deg, #0c1a2e, #0a1628)',
@@ -241,7 +278,6 @@ function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoT
         </div>
       )}
 
-      {/* Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', margin: '0 0 4px', fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -298,16 +334,14 @@ export default function CourseDetail() {
   if (!course) return <div style={{ padding: 40, color: '#94a3b8' }}>Course not found.</div>;
 
   const isAdmin = ADMIN_EMAILS.includes(authUser?.email);
-  const allLessons = course.modules.flatMap(m => m.lessons);
+
+  // Expand modules to include a guide lesson after every video lesson
+  const expandedModules = expandModules(course.modules);
+  const allLessons = expandedModules.flatMap(m => m.lessons);
+
   const firstUncompleted = allLessons.find(l => !user.completedLessons.includes(l.id));
   const [activeLesson, setActiveLesson] = useState(firstUncompleted || allLessons[0]);
   const [videoUrls, setVideoUrls] = useState({});
-  const [activeTab, setActiveTab] = useState('video'); // 'video' | 'guide'
-
-  // Reset tab when lesson changes
-  useEffect(() => {
-    setActiveTab('video');
-  }, [activeLesson?.id]);
 
   // Fetch video URLs for this course
   useEffect(() => {
@@ -328,14 +362,12 @@ export default function CourseDetail() {
   const totalDone = allLessons.filter(l => user.completedLessons.includes(l.id)).length;
   const pct = allLessons.length ? Math.round((totalDone / allLessons.length) * 100) : 0;
 
-  const handleEnroll = () => {
-    enrollInCourse(course.id);
-  };
+  const handleEnroll = () => enrollInCourse(course.id);
 
   const handleCompleteLesson = () => {
     completeLesson(activeLesson.id, activeLesson.xp);
-    // Check if module is complete
-    const parentModule = course.modules.find(m => m.lessons.some(l => l.id === activeLesson.id));
+    // Check if module is complete (use expandedModules)
+    const parentModule = expandedModules.find(m => m.lessons.some(l => l.id === activeLesson.id));
     if (parentModule) {
       const allModuleLessons = parentModule.lessons.map(l => l.id);
       const newCompleted = [...user.completedLessons, activeLesson.id];
@@ -345,17 +377,22 @@ export default function CourseDetail() {
     // Check if course is complete
     const allIds = allLessons.map(l => l.id);
     const newCompleted = [...user.completedLessons, activeLesson.id];
-    if (allIds.every(id => newCompleted.includes(id))) {
-      completeCourse(course.id);
-    }
-    // Auto-advance to next lesson
-    const currentIndex = allLessons.findIndex(l => l.id === activeLesson.id);
-    if (currentIndex < allLessons.length - 1) {
-      setTimeout(() => setActiveLesson(allLessons[currentIndex + 1]), 600);
+    if (allIds.every(id => newCompleted.includes(id))) completeCourse(course.id);
+    // Auto-advance
+    const idx = allLessons.findIndex(l => l.id === activeLesson.id);
+    if (idx < allLessons.length - 1) {
+      setTimeout(() => setActiveLesson(allLessons[idx + 1]), 600);
     }
   };
 
-  const isQuiz = activeLesson?.type === 'quiz';
+  const isQuizLesson = activeLesson?.type === 'quiz';
+  const isGuide = activeLesson?.type === 'guide';
+
+  // For guide lessons, find the parent video lesson to get chapter context
+  const parentLesson = isGuide
+    ? course.modules.flatMap(m => m.lessons).find(l => l.id === activeLesson._parentId)
+    : null;
+  const chapterTitle = expandedModules.find(m => m.lessons.some(l => l.id === activeLesson?.id))?.title || '';
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -408,7 +445,7 @@ export default function CourseDetail() {
 
         {/* Modules */}
         <div style={{ padding: '12px 12px', flex: 1, overflow: 'auto' }}>
-          {course.modules.map(module => (
+          {expandedModules.map(module => (
             <ModuleSection
               key={module.id}
               module={module}
@@ -474,7 +511,7 @@ export default function CourseDetail() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
               >
-                {isQuiz ? (
+                {isQuizLesson ? (
                   <div style={{ textAlign: 'center', padding: '60px 0' }}>
                     <div style={{ fontSize: 60, marginBottom: 20 }}>📝</div>
                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#f1f5f9', margin: '0 0 12px', fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -493,93 +530,89 @@ export default function CourseDetail() {
                       🎯 Start Quiz (+{activeLesson.xp} XP)
                     </motion.button>
                   </div>
-                ) : (
+                ) : isGuide ? (
+                  /* Study Guide lesson */
                   <div>
-                    {/* Tab bar */}
-                    <div style={{
-                      display: 'flex', gap: 4, marginBottom: 20,
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 12, padding: 4,
-                      width: 'fit-content',
-                    }}>
-                      {[
-                        { id: 'video', icon: <Video size={14} />, label: 'Lesson Video' },
-                        { id: 'guide', icon: <Brain size={14} />, label: 'AI Study Guide' },
-                      ].map(tab => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 7,
-                            padding: '8px 18px', borderRadius: 9, cursor: 'pointer',
-                            border: 'none', fontSize: 13, fontWeight: 700,
-                            background: activeTab === tab.id
-                              ? (tab.id === 'guide' ? 'linear-gradient(135deg, rgba(129,140,248,0.3), rgba(168,85,247,0.2))' : 'rgba(56,189,248,0.15)')
-                              : 'transparent',
-                            color: activeTab === tab.id
-                              ? (tab.id === 'guide' ? '#c084fc' : '#38bdf8')
-                              : '#475569',
-                            boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                            transition: 'all 0.18s',
-                          }}
-                        >
-                          {tab.icon}
-                          {tab.label}
-                          {tab.id === 'guide' && activeTab !== 'guide' && (
-                            <span style={{
-                              fontSize: 9, fontWeight: 800, padding: '1px 5px',
-                              borderRadius: 4, background: 'rgba(168,85,247,0.2)',
-                              color: '#c084fc', textTransform: 'uppercase', letterSpacing: 0.5,
-                            }}>AI</span>
-                          )}
-                        </button>
-                      ))}
+                    {/* Header */}
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{
+                          padding: '4px 12px', borderRadius: 20,
+                          background: 'rgba(129,140,248,0.15)',
+                          border: '1px solid rgba(129,140,248,0.3)',
+                          fontSize: 11, fontWeight: 700, color: '#a78bfa',
+                          textTransform: 'uppercase', letterSpacing: 1,
+                        }}>
+                          Study Guide
+                        </div>
+                        <span style={{ fontSize: 12, color: '#475569' }}>{activeLesson.duration}</span>
+                        <span style={{ fontSize: 12, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600 }}>
+                          <Zap size={11} /> +{activeLesson.xp} XP
+                        </span>
+                      </div>
+                      <h2 style={{
+                        fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: 0,
+                        fontFamily: "'Space Grotesk', sans-serif",
+                      }}>
+                        {parentLesson?.title || activeLesson.title.replace(' — Study Guide', '')}
+                      </h2>
+                      <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{chapterTitle}</div>
                     </div>
 
-                    {/* Tab content */}
-                    <AnimatePresence mode="wait">
-                      {activeTab === 'video' ? (
-                        <motion.div
-                          key="video-tab"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          <VideoPlayer
-                            lesson={activeLesson}
-                            onComplete={handleCompleteLesson}
-                            isCompleted={user.completedLessons.includes(activeLesson?.id)}
-                            videoUrl={videoUrls[activeLesson?.id]}
-                            isAdmin={isAdmin}
-                            onGoToAdmin={() => navigate('/admin')}
-                          />
-                        </motion.div>
+                    <StudyGuide
+                      lesson={parentLesson || activeLesson}
+                      courseId={courseId}
+                      chapterTitle={chapterTitle}
+                      courseTitle={course.title}
+                      isAdmin={isAdmin}
+                    />
+
+                    {/* Complete button */}
+                    <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
+                      {user.completedLessons.includes(activeLesson.id) ? (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '10px 20px', borderRadius: 12,
+                          background: 'rgba(34,197,94,0.12)',
+                          border: '1px solid rgba(34,197,94,0.3)',
+                          color: '#4ade80', fontSize: 14, fontWeight: 600,
+                        }}>
+                          <CheckCircle size={16} /> Completed
+                        </div>
                       ) : (
-                        <motion.div
-                          key="guide-tab"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.15 }}
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={handleCompleteLesson}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '11px 24px', borderRadius: 12,
+                            background: 'linear-gradient(135deg, rgba(129,140,248,0.3), rgba(168,85,247,0.2))',
+                            border: '1px solid rgba(129,140,248,0.4)',
+                            color: '#a78bfa', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                          }}
                         >
-                          <StudyGuide
-                            lesson={activeLesson}
-                            courseId={courseId}
-                            chapterTitle={course.modules.find(m => m.lessons.some(l => l.id === activeLesson.id))?.title || ''}
-                            courseTitle={course.title}
-                            isAdmin={isAdmin}
-                          />
-                        </motion.div>
+                          <CheckCircle size={16} />
+                          Mark as Complete (+{activeLesson.xp} XP)
+                        </motion.button>
                       )}
-                    </AnimatePresence>
+                    </div>
                   </div>
+                ) : (
+                  /* Video lesson */
+                  <VideoPlayer
+                    lesson={activeLesson}
+                    onComplete={handleCompleteLesson}
+                    isCompleted={user.completedLessons.includes(activeLesson?.id)}
+                    videoUrl={videoUrls[activeLesson?.id]}
+                    isAdmin={isAdmin}
+                    onGoToAdmin={() => navigate('/admin')}
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation */}
+            {/* Prev / Next navigation */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               {(() => {
                 const idx = allLessons.findIndex(l => l.id === activeLesson?.id);
@@ -597,8 +630,10 @@ export default function CourseDetail() {
                         background: 'rgba(255,255,255,0.04)',
                         border: '1px solid rgba(255,255,255,0.1)',
                         color: '#94a3b8', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                        maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        <ChevronLeft size={16} /> {prev.title}
+                        <ChevronLeft size={16} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prev.title}</span>
                       </button>
                     ) : <div />}
                     {next ? (
@@ -611,8 +646,10 @@ export default function CourseDetail() {
                         background: 'rgba(14,165,233,0.1)',
                         border: '1px solid rgba(14,165,233,0.3)',
                         color: '#38bdf8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                        maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {next.title} <ChevronRight size={16} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{next.title}</span>
+                        <ChevronRight size={16} style={{ flexShrink: 0 }} />
                       </button>
                     ) : (
                       <div style={{
