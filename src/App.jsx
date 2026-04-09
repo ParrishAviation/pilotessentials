@@ -13,6 +13,7 @@ import Leaderboard from './pages/Leaderboard';
 import AdminPanel from './pages/AdminPanel';
 import AIInstructor from './pages/AIInstructor';
 import Checkout from './pages/Checkout';
+import PaywallGate from './components/PaywallGate';
 
 // Blog pages
 import BlogIndex from './pages/blog/BlogIndex';
@@ -65,13 +66,13 @@ function AuthenticatedApp() {
   return (
     <UserProvider>
       <Routes>
-        <Route path="/quiz/:courseId/:lessonId" element={<Quiz />} />
+        <Route path="/quiz/:courseId/:lessonId" element={<PaywallGate><Quiz /></PaywallGate>} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route element={<Layout />}>
           <Route path="/app" element={<Dashboard />} />
-          <Route path="/courses" element={<CourseCatalog />} />
-          <Route path="/course/:courseId" element={<CourseDetail />} />
-          <Route path="/ai-instructor" element={<AIInstructor />} />
+          <Route path="/courses" element={<PaywallGate><CourseCatalog /></PaywallGate>} />
+          <Route path="/course/:courseId" element={<PaywallGate><CourseDetail /></PaywallGate>} />
+          <Route path="/ai-instructor" element={<PaywallGate><AIInstructor /></PaywallGate>} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
