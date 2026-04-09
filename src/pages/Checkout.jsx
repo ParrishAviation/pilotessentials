@@ -39,7 +39,6 @@ const PLANS = {
       'Exclusive 7-page expert study guide',
       'CFI-reviewed study sessions',
       'Small-group mentorship community',
-      'Priority support & checkride Q&A',
     ],
   },
 };
