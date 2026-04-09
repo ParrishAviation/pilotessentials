@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, User, Plane, Zap, Shield, BookOpen } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Plane, Zap, Shield, BookOpen, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -82,6 +84,18 @@ export default function Auth() {
         }}>
           {/* Logo */}
           <div>
+            <button onClick={() => navigate('/')} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#475569', fontSize: 13, fontWeight: 600,
+              marginBottom: 28, padding: 0,
+              transition: 'color 0.2s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.color = '#94a3b8'}
+              onMouseLeave={e => e.currentTarget.style.color = '#475569'}
+            >
+              <ArrowLeft size={14} /> Back to Home
+            </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
               <div style={{
                 width: 46, height: 46,

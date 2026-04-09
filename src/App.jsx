@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UserProvider } from './context/UserContext';
 import Layout from './components/Layout';
+import LandingPage from './pages/LandingPage';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import CourseCatalog from './pages/CourseCatalog';
@@ -44,28 +45,52 @@ function LoadingScreen() {
   );
 }
 
-function AppRoutes() {
-  const { user, loading } = useAuth();
-
-  if (loading) return <LoadingScreen />;
-  if (!user) return <Auth />;
-
+// Wraps all authenticated app routes with UserProvider
+function AuthenticatedApp() {
   return (
     <UserProvider>
       <Routes>
         <Route path="/quiz/:courseId/:lessonId" element={<Quiz />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/app" element={<Dashboard />} />
           <Route path="/courses" element={<CourseCatalog />} />
           <Route path="/course/:courseId" element={<CourseDetail />} />
           <Route path="/ai-instructor" element={<AIInstructor />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
         </Route>
       </Routes>
     </UserProvider>
+  );
+}
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <LoadingScreen />;
+
+  // Public routes (accessible without login)
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
+  // Authenticated routes
+  return (
+    <Routes>
+      {/* Redirect landing and login to the app if already logged in */}
+      <Route path="/" element={<Navigate to="/app" replace />} />
+      <Route path="/login" element={<Navigate to="/app" replace />} />
+      {/* All other app routes */}
+      <Route path="/*" element={<AuthenticatedApp />} />
+    </Routes>
   );
 }
 
