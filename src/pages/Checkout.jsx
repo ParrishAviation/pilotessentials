@@ -94,11 +94,10 @@ export default function Checkout() {
           style: {
             '.input-container': {
               borderRadius: '10px',
-              borderColor: 'rgba(255,255,255,0.12)',
-              backgroundColor: 'rgba(255,255,255,0.04)',
+              borderColor: 'rgba(255,255,255,0.15)',
             },
             '.input-container.is-focus': {
-              borderColor: 'rgba(56,189,248,0.5)',
+              borderColor: 'rgba(56,189,248,0.6)',
             },
             '.input-container.is-error': {
               borderColor: 'rgba(239,68,68,0.6)',
@@ -106,7 +105,6 @@ export default function Checkout() {
             '.message-text': { color: '#94a3b8' },
             '.message-icon': { color: '#94a3b8' },
             input: { color: '#f1f5f9', fontSize: '15px' },
-            'input::placeholder': { color: '#475569' },
           },
         });
 
