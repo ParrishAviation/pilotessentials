@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import * as tus from 'tus-js-client';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -240,35 +241,49 @@ export default function AdminPanel() {
     }
 
     setUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(2);
     setMessage(null);
 
     const ext = file.name.split('.').pop().toLowerCase() || 'mp4';
-    const path = `${selectedCourse.id}/${selectedLesson.id}/video.${ext}`;
+    const objectPath = `${selectedCourse.id}/${selectedLesson.id}/video.${ext}`;
 
     try {
-      setUploadProgress(30);
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { upsert: true, cacheControl: '3600' });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Not authenticated — please sign in again.');
 
-      if (uploadError) {
-        const isBucketMissing = uploadError.message.toLowerCase().includes('bucket') ||
-          uploadError.message.toLowerCase().includes('not found');
-        setMessage({
-          type: 'error',
-          text: isBucketMissing
-            ? 'Storage bucket not found. Go to Supabase Dashboard → Storage → Create bucket named "course-videos" (set Public), then try again.'
-            : uploadError.message,
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+      // Use TUS resumable upload — handles any file size, real progress events
+      await new Promise((resolve, reject) => {
+        const upload = new tus.Upload(file, {
+          endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+          retryDelays: [0, 1000, 3000, 5000],
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'x-upsert': 'true',
+          },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          metadata: {
+            bucketName: BUCKET,
+            objectName: objectPath,
+            contentType: file.type || 'video/mp4',
+            cacheControl: '3600',
+          },
+          chunkSize: 6 * 1024 * 1024, // 6 MB chunks
+          onError: (err) => reject(new Error(err.message || 'Upload failed')),
+          onProgress: (bytesUploaded, bytesTotal) => {
+            setUploadProgress(Math.round((bytesUploaded / bytesTotal) * 90));
+          },
+          onSuccess: resolve,
         });
-        setUploading(false);
-        setUploadProgress(0);
-        return;
-      }
+        upload.start();
+      });
 
-      setUploadProgress(80);
+      setUploadProgress(92);
 
-      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(objectPath);
 
       // Get video duration
       let durationSeconds = null;
