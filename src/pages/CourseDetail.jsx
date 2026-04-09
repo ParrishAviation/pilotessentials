@@ -13,31 +13,46 @@ import StudyGuide from '../components/StudyGuide';
 
 const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 
-// Given a real lesson, return the injected Part 2 guide lesson object
-function makeGuidLesson(lesson) {
-  return {
+// Strip a leading number like "1 — " or "1 — " from a title, returning [num, rest]
+function parseTitle(title) {
+  const m = title.match(/^(\d+)\s*[—\-–]\s*(.+)$/);
+  if (m) return { num: m[1], rest: m[2] };
+  return { num: null, rest: title };
+}
+
+// Build the a/b virtual lessons from a real video lesson
+function expandLesson(lesson) {
+  const { num, rest } = parseTitle(lesson.title);
+  const prefix = num ? `${num}` : '';
+
+  const partA = {
+    ...lesson,
+    _partLabel: prefix ? `${prefix}a` : null,
+    _displayTitle: prefix ? `${prefix}a — ${rest}` : lesson.title,
+    _isPartA: true,
+  };
+
+  const partB = {
     id: `${lesson.id}-guide`,
-    title: `${lesson.title} — Study Guide`,
+    title: lesson.title,
+    _displayTitle: prefix ? `${prefix}b — ${rest}` : `${lesson.title} — Study Guide`,
+    _partLabel: prefix ? `${prefix}b` : null,
     duration: '10 min read',
     xp: Math.round(lesson.xp * 0.5),
     type: 'guide',
     _parentId: lesson.id,
   };
+
+  return [partA, partB];
 }
 
-// Returns true if the lesson id is a guide virtual lesson
-function isGuideLesson(id) {
-  return typeof id === 'string' && id.endsWith('-guide');
-}
-
-// Expand modules to include a Part 2 guide after every video lesson
+// Expand modules so every video lesson becomes two entries (a + b)
 function expandModules(modules) {
   return modules.map(mod => ({
     ...mod,
-    lessons: mod.lessons.flatMap(lesson => {
-      if (lesson.type === 'video') return [lesson, makeGuidLesson(lesson)];
-      return [lesson];
-    }),
+    lessons: mod.lessons.flatMap(lesson =>
+      lesson.type === 'video' ? expandLesson(lesson) : [lesson]
+    ),
   }));
 }
 
@@ -76,14 +91,14 @@ function LessonRow({ lesson, isCompleted, isActive, isLocked, onSelect }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 13, fontWeight: isGuide ? 500 : 500,
+          fontSize: 13, fontWeight: 500,
           color: isActive
             ? (isGuide ? '#a78bfa' : '#38bdf8')
             : isCompleted ? '#4ade80'
             : (isGuide ? '#b0a4e8' : '#e2e8f0'),
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          {lesson.title}
+          {lesson._displayTitle || lesson.title}
         </div>
         <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{lesson.duration}</div>
       </div>
@@ -281,7 +296,7 @@ function VideoPlayer({ lesson, onComplete, isCompleted, videoUrl, isAdmin, onGoT
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', margin: '0 0 4px', fontFamily: "'Space Grotesk', sans-serif" }}>
-            {lesson.title}
+            {lesson._displayTitle || lesson.title}
           </h2>
           <div style={{ display: 'flex', gap: 12 }}>
             <span style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -535,28 +550,19 @@ export default function CourseDetail() {
                   <div>
                     {/* Header */}
                     <div style={{ marginBottom: 24 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                        <div style={{
-                          padding: '4px 12px', borderRadius: 20,
-                          background: 'rgba(129,140,248,0.15)',
-                          border: '1px solid rgba(129,140,248,0.3)',
-                          fontSize: 11, fontWeight: 700, color: '#a78bfa',
-                          textTransform: 'uppercase', letterSpacing: 1,
-                        }}>
-                          Study Guide
-                        </div>
-                        <span style={{ fontSize: 12, color: '#475569' }}>{activeLesson.duration}</span>
+                      <h2 style={{
+                        fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: '0 0 6px',
+                        fontFamily: "'Space Grotesk', sans-serif",
+                      }}>
+                        {activeLesson._displayTitle || activeLesson.title}
+                      </h2>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 13, color: '#64748b' }}>{chapterTitle}</span>
+                        <span style={{ fontSize: 12, color: '#475569' }}>· {activeLesson.duration}</span>
                         <span style={{ fontSize: 12, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600 }}>
                           <Zap size={11} /> +{activeLesson.xp} XP
                         </span>
                       </div>
-                      <h2 style={{
-                        fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: 0,
-                        fontFamily: "'Space Grotesk', sans-serif",
-                      }}>
-                        {parentLesson?.title || activeLesson.title.replace(' — Study Guide', '')}
-                      </h2>
-                      <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{chapterTitle}</div>
                     </div>
 
                     <StudyGuide
@@ -633,7 +639,7 @@ export default function CourseDetail() {
                         maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         <ChevronLeft size={16} style={{ flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prev.title}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prev._displayTitle || prev.title}</span>
                       </button>
                     ) : <div />}
                     {next ? (
@@ -648,7 +654,7 @@ export default function CourseDetail() {
                         color: '#38bdf8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{next.title}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{next._displayTitle || next.title}</span>
                         <ChevronRight size={16} style={{ flexShrink: 0 }} />
                       </button>
                     ) : (
