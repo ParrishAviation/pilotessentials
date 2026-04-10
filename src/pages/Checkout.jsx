@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'; // Link used in nav
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Lock, ArrowLeft, AlertCircle, Tag, X } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
@@ -66,38 +66,40 @@ function PaymentForm({ plan, planKey }) {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuth(); // may be null for guests
 
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  // Contact fields
+  const [name, setName]   = useState(user?.user_metadata?.full_name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState('');
+
+  const [processing, setProcessing]     = useState(false);
+  const [error, setError]               = useState('');
+  const [success, setSuccess]           = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
 
   // Discount code state
-  const [discountInput, setDiscountInput] = useState('');
-  const [appliedCode, setAppliedCode] = useState(null); // null | { code, discountPct }
-  const [discountError, setDiscountError] = useState('');
+  const [discountInput, setDiscountInput]   = useState('');
+  const [appliedCode, setAppliedCode]       = useState(null);
+  const [discountError, setDiscountError]   = useState('');
   const [discountChecking, setDiscountChecking] = useState(false);
 
-  const isFree = appliedCode?.discountPct === 100;
+  const isFree     = appliedCode?.discountPct === 100;
   const finalPrice = isFree ? '$0' : plan.price;
+
+  // Field validation
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const formValid  = name.trim() && emailValid && phone.trim() && (isFree || cardComplete);
 
   const handleApplyDiscount = async () => {
     if (!discountInput.trim()) return;
     setDiscountError('');
     setDiscountChecking(true);
-    // Validate by attempting a dry-run call (we check server-side on submit; client just previews)
-    // For instant feedback we do a lightweight server check
     try {
       const res = await fetch('/api/stripe-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'validate_discount',
-          discountCode: discountInput.trim(),
-          plan: planKey,
-          userId: user?.id || 'preview',
-        }),
+        body: JSON.stringify({ action: 'validate_discount', discountCode: discountInput.trim() }),
       });
       const data = await res.json();
       if (data.valid) {
@@ -121,78 +123,64 @@ function PaymentForm({ plan, planKey }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
+    if (!formValid) return;
 
     setError('');
     setProcessing(true);
 
+    // Shared contact payload — use logged-in userId if available
+    const contact = {
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      userId: user?.id || undefined,
+    };
+
     try {
-      // ── Free checkout via discount code ──────────────────────────────────
+      // ── Free checkout via 100% discount code ─────────────────────────────
       if (isFree) {
         const res = await fetch('/api/stripe-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'free_purchase',
-            plan: planKey,
-            userId: user.id,
-            discountCode: appliedCode.code,
-          }),
+          body: JSON.stringify({ action: 'free_purchase', plan: planKey, discountCode: appliedCode.code, ...contact }),
         });
         const data = await res.json();
-        if (!res.ok || data.error) {
-          setError(data.error || 'Failed to apply discount.');
-          setProcessing(false);
-          return;
-        }
+        if (!res.ok || data.error) { setError(data.error || 'Failed to apply discount.'); setProcessing(false); return; }
         setSuccess(true);
-        setTimeout(() => navigate(`/thank-you?plan=${planKey}`), 1500);
+        const isGuest = !user;
+        setTimeout(() => navigate(`/thank-you?plan=${planKey}${isGuest ? '&guest=1' : ''}`), 1500);
         return;
       }
 
       // ── Normal Stripe card payment ────────────────────────────────────────
       if (!stripe || !elements) return;
 
-      // Step 1: Create PaymentIntent on our server
-      const res = await fetch('/api/stripe-payment', {
+      // Step 1: Create PaymentIntent
+      const createRes = await fetch('/api/stripe-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planKey, userId: user.id, userEmail: user.email }),
+        body: JSON.stringify({ action: 'create', plan: planKey, email: email.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        setError(data.error || 'Failed to initialize payment.');
-        setProcessing(false);
-        return;
-      }
+      const createData = await createRes.json();
+      if (!createRes.ok || createData.error) { setError(createData.error || 'Failed to initialize payment.'); setProcessing(false); return; }
 
-      // Step 2: Confirm card payment with Stripe.js
+      // Step 2: Confirm card with Stripe.js
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        data.clientSecret,
-        { payment_method: { card: elements.getElement(CardElement) } }
+        createData.clientSecret,
+        { payment_method: { card: elements.getElement(CardElement), billing_details: { name: name.trim(), email: email.trim(), phone: phone.trim() } } }
       );
+      if (stripeError) { setError(stripeError.message || 'Payment failed.'); setProcessing(false); return; }
 
-      if (stripeError) {
-        setError(stripeError.message || 'Payment failed.');
-        setProcessing(false);
-        return;
-      }
-
+      // Step 3: Confirm + create account + record purchase
       if (paymentIntent.status === 'succeeded') {
-        // Step 3: Record in Supabase
         await fetch('/api/stripe-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'confirm',
-            plan: planKey,
-            userId: user.id,
-            paymentIntentId: paymentIntent.id,
-          }),
+          body: JSON.stringify({ action: 'confirm', plan: planKey, paymentIntentId: paymentIntent.id, ...contact }),
         });
-
         setSuccess(true);
-        setTimeout(() => navigate(`/thank-you?plan=${planKey}`), 1500);
+        const isGuest = !user;
+        setTimeout(() => navigate(`/thank-you?plan=${planKey}${isGuest ? '&guest=1' : ''}`), 1500);
       }
     } catch (err) {
       console.error('Payment error:', err);
@@ -203,246 +191,153 @@ function PaymentForm({ plan, planKey }) {
 
   if (success) {
     return (
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        style={{
-          textAlign: 'center',
-          background: 'rgba(52,211,153,0.08)',
-          border: '1px solid rgba(52,211,153,0.25)',
-          borderRadius: 20, padding: '48px 32px',
-        }}
-      >
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%', margin: '0 auto 20px',
-          background: 'rgba(52,211,153,0.15)', border: '2px solid rgba(52,211,153,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36,
-        }}>✅</div>
-        <h2 style={{ color: '#f1f5f9', fontSize: 26, fontWeight: 800, marginBottom: 10 }}>
-          Welcome to Pilot Essentials!
-        </h2>
-        <p style={{ color: '#94a3b8', fontSize: 15, lineHeight: 1.7, marginBottom: 6 }}>
-          Your {plan.name} is now active. Redirecting to your dashboard...
-        </p>
-        <p style={{ color: '#34d399', fontSize: 14, fontWeight: 600 }}>✈️ Time to ace your FAA written test!</p>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        style={{ textAlign: 'center', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: 20, padding: '48px 32px' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', margin: '0 auto 20px', background: 'rgba(52,211,153,0.15)', border: '2px solid rgba(52,211,153,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>✅</div>
+        <h2 style={{ color: '#f1f5f9', fontSize: 26, fontWeight: 800, marginBottom: 10 }}>Payment confirmed!</h2>
+        <p style={{ color: '#94a3b8', fontSize: 15, lineHeight: 1.7 }}>Setting up your account and redirecting…</p>
       </motion.div>
     );
   }
 
+  const inputStyle = {
+    width: '100%', padding: '11px 14px', borderRadius: 10, fontSize: 14,
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
+    color: '#f1f5f9', outline: 'none', fontFamily: 'Inter, system-ui, sans-serif',
+    boxSizing: 'border-box',
+  };
+  const labelStyle = {
+    display: 'block', fontSize: 12, fontWeight: 700,
+    color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5,
+  };
+
   return (
     <form onSubmit={handleSubmit}>
-      {!user && (
-        <div style={{
-          background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)',
-          borderRadius: 12, padding: '14px 16px', marginBottom: 20,
-          display: 'flex', gap: 10, alignItems: 'flex-start',
-        }}>
-          <AlertCircle size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-          <p style={{ color: '#fde68a', fontSize: 14, lineHeight: 1.5, margin: 0 }}>
-            You must be signed in to complete your purchase.{' '}
-            <Link to={`/login?redirect=/checkout?plan=${planKey}`} style={{ color: '#f59e0b', fontWeight: 700 }}>
-              Sign in or create a free account →
-            </Link>
-          </p>
-        </div>
-      )}
 
-      {/* Stripe Card Element — hidden when free */}
+      {/* ── Contact fields ── */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>Full Name</label>
+        <input
+          type="text" value={name} onChange={e => setName(e.target.value)}
+          placeholder="Jane Smith" required style={inputStyle}
+        />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+        <div>
+          <label style={labelStyle}>Email Address</label>
+          <input
+            type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="jane@example.com" required style={inputStyle}
+          />
+        </div>
+        <div>
+          <label style={labelStyle}>Phone Number</label>
+          <input
+            type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+            placeholder="(555) 000-0000" required style={inputStyle}
+          />
+        </div>
+      </div>
+
+      {/* ── Card — hidden when free ── */}
       {!isFree && (
-        <div style={{ marginBottom: 20 }}>
-          <label style={{
-            display: 'block', fontSize: 12, fontWeight: 700,
-            color: '#94a3b8', marginBottom: 8,
-            textTransform: 'uppercase', letterSpacing: 0.5,
-          }}>
-            Card Information
-          </label>
-          <div style={{
-            padding: '14px 16px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 10,
-          }}>
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Card Information</label>
+          <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>
             <CardElement
               options={CARD_ELEMENT_OPTIONS}
-              onChange={(e) => {
-                setCardComplete(e.complete);
-                if (e.error) setError(e.error.message);
-                else setError('');
-              }}
+              onChange={e => { setCardComplete(e.complete); setError(e.error ? e.error.message : ''); }}
             />
           </div>
         </div>
       )}
 
-      {/* Discount Code */}
+      {/* ── Discount Code ── */}
       <div style={{ marginBottom: 20 }}>
-        <label style={{
-          display: 'block', fontSize: 12, fontWeight: 700,
-          color: '#94a3b8', marginBottom: 8,
-          textTransform: 'uppercase', letterSpacing: 0.5,
-        }}>
-          Discount Code
-        </label>
-
+        <label style={labelStyle}>Discount Code</label>
         {appliedCode ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '11px 14px', borderRadius: 10,
-            background: 'rgba(52,211,153,0.08)',
-            border: '1px solid rgba(52,211,153,0.3)',
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 10, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Tag size={14} color="#34d399" />
-              <span style={{ color: '#34d399', fontWeight: 700, fontSize: 14 }}>
-                {appliedCode.code}
-              </span>
-              <span style={{ color: '#64748b', fontSize: 13 }}>
-                — {appliedCode.discountPct === 100 ? '100% off' : `${appliedCode.discountPct}% off`}
-              </span>
+              <span style={{ color: '#34d399', fontWeight: 700, fontSize: 14 }}>{appliedCode.code}</span>
+              <span style={{ color: '#64748b', fontSize: 13 }}>— {appliedCode.discountPct === 100 ? '100% off' : `${appliedCode.discountPct}% off`}</span>
             </div>
-            <button
-              type="button"
-              onClick={handleRemoveDiscount}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', padding: 4 }}
-            >
+            <button type="button" onClick={handleRemoveDiscount} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', padding: 4 }}>
               <X size={15} />
             </button>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8 }}>
             <input
-              type="text"
-              value={discountInput}
+              type="text" value={discountInput}
               onChange={e => { setDiscountInput(e.target.value); setDiscountError(''); }}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleApplyDiscount())}
-              placeholder="Enter code"
-              style={{
-                flex: 1, padding: '11px 14px', borderRadius: 10, fontSize: 14,
-                background: 'rgba(255,255,255,0.04)',
-                border: `1px solid ${discountError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.12)'}`,
-                color: '#f1f5f9', outline: 'none',
-                fontFamily: 'Inter, system-ui, sans-serif',
-              }}
+              placeholder="Enter code" style={{ ...inputStyle, flex: 1, border: `1px solid ${discountError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.12)'}` }}
             />
-            <button
-              type="button"
-              onClick={handleApplyDiscount}
-              disabled={!discountInput.trim() || discountChecking || !user}
-              style={{
-                padding: '11px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                cursor: !discountInput.trim() || discountChecking || !user ? 'not-allowed' : 'pointer',
-                background: !discountInput.trim() || !user ? 'rgba(255,255,255,0.04)' : 'rgba(56,189,248,0.12)',
-                border: `1px solid ${!discountInput.trim() || !user ? 'rgba(255,255,255,0.08)' : 'rgba(56,189,248,0.3)'}`,
-                color: !discountInput.trim() || !user ? '#475569' : '#38bdf8',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {discountChecking ? '...' : 'Apply'}
+            <button type="button" onClick={handleApplyDiscount} disabled={!discountInput.trim() || discountChecking}
+              style={{ padding: '11px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: !discountInput.trim() || discountChecking ? 'not-allowed' : 'pointer', background: discountInput.trim() ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${discountInput.trim() ? 'rgba(56,189,248,0.3)' : 'rgba(255,255,255,0.08)'}`, color: discountInput.trim() ? '#38bdf8' : '#475569', whiteSpace: 'nowrap' }}>
+              {discountChecking ? '…' : 'Apply'}
             </button>
           </div>
         )}
-
         <AnimatePresence>
           {discountError && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ color: '#f87171', fontSize: 13, marginTop: 6 }}
-            >
+            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ color: '#f87171', fontSize: 13, marginTop: 6 }}>
               {discountError}
             </motion.p>
           )}
         </AnimatePresence>
       </div>
 
+      {/* ── Error ── */}
       <AnimatePresence>
         {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            style={{
-              padding: '12px 16px', borderRadius: 10, marginBottom: 16,
-              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-              display: 'flex', gap: 10, alignItems: 'flex-start',
-            }}
-          >
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ padding: '12px 16px', borderRadius: 10, marginBottom: 16, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <AlertCircle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
             <p style={{ color: '#f87171', fontSize: 14, margin: 0, lineHeight: 1.5 }}>{error}</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Total */}
-      <div style={{
-        padding: '14px 16px', marginBottom: 16,
-        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 10,
-      }}>
+      {/* ── Total ── */}
+      <div style={{ padding: '14px 16px', marginBottom: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: '#94a3b8', fontSize: 15, fontWeight: 600 }}>Total due today</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {appliedCode && (
-              <span style={{ color: '#64748b', fontSize: 16, fontWeight: 600, textDecoration: 'line-through', fontFamily: "'Space Grotesk', sans-serif" }}>
-                {plan.price}
-              </span>
-            )}
-            <span style={{ color: isFree ? '#34d399' : '#f1f5f9', fontWeight: 900, fontSize: 22, fontFamily: "'Space Grotesk', sans-serif" }}>
-              {finalPrice}
-            </span>
+            {appliedCode && <span style={{ color: '#64748b', fontSize: 16, fontWeight: 600, textDecoration: 'line-through', fontFamily: "'Space Grotesk', sans-serif" }}>{plan.price}</span>}
+            <span style={{ color: isFree ? '#34d399' : '#f1f5f9', fontWeight: 900, fontSize: 22, fontFamily: "'Space Grotesk', sans-serif" }}>{finalPrice}</span>
           </div>
         </div>
-        {isFree && (
-          <p style={{ color: '#34d399', fontSize: 12, fontWeight: 600, marginTop: 4 }}>
-            ✓ Discount code applied — full access at no charge
-          </p>
-        )}
+        {isFree && <p style={{ color: '#34d399', fontSize: 12, fontWeight: 600, marginTop: 4 }}>✓ Discount code applied — full access at no charge</p>}
       </div>
 
-      {(() => {
-        const canSubmit = user && !processing && (isFree || (stripe && cardComplete));
-        return (
-          <motion.button
-            type="submit"
-            disabled={!canSubmit}
-            whileHover={canSubmit ? { scale: 1.02 } : {}}
-            whileTap={canSubmit ? { scale: 0.98 } : {}}
-            style={{
-              width: '100%', padding: '16px',
-              background: !canSubmit ? 'rgba(255,255,255,0.06)' : isFree ? 'linear-gradient(135deg, #059669, #10b981)' : plan.gradient,
-              border: 'none', borderRadius: 12,
-              color: !canSubmit ? '#64748b' : '#fff',
-              fontSize: 16, fontWeight: 800,
-              cursor: !canSubmit ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              boxShadow: canSubmit ? (isFree ? '0 6px 24px rgba(16,185,129,0.3)' : '0 6px 24px rgba(14,165,233,0.25)') : 'none',
-              transition: 'all 0.2s',
-              fontFamily: "'Space Grotesk', sans-serif",
-            }}
-          >
-            {processing ? (
-              <>
-                <span style={{
-                  width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)',
-                  borderTopColor: '#fff', borderRadius: '50%',
-                  display: 'inline-block', animation: 'spin 0.8s linear infinite',
-                }} />
-                {isFree ? 'Activating access...' : 'Processing payment...'}
-              </>
-            ) : !user ? (
-              'Sign in to complete purchase'
-            ) : isFree ? (
-              <>
-                <CheckCircle size={16} />
-                Activate Free Access
-              </>
-            ) : (
-              <>
-                <Lock size={16} />
-                Pay {plan.price} — Get Instant Access
-              </>
-            )}
-          </motion.button>
-        );
-      })()}
+      {/* ── Submit ── */}
+      <motion.button
+        type="submit" disabled={!formValid || processing}
+        whileHover={formValid && !processing ? { scale: 1.02 } : {}}
+        whileTap={formValid && !processing ? { scale: 0.98 } : {}}
+        style={{
+          width: '100%', padding: '16px',
+          background: !formValid || processing ? 'rgba(255,255,255,0.06)' : isFree ? 'linear-gradient(135deg, #059669, #10b981)' : plan.gradient,
+          border: 'none', borderRadius: 12,
+          color: !formValid || processing ? '#64748b' : '#fff',
+          fontSize: 16, fontWeight: 800,
+          cursor: !formValid || processing ? 'not-allowed' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          boxShadow: formValid && !processing ? (isFree ? '0 6px 24px rgba(16,185,129,0.3)' : '0 6px 24px rgba(14,165,233,0.25)') : 'none',
+          transition: 'all 0.2s', fontFamily: "'Space Grotesk', sans-serif",
+        }}
+      >
+        {processing ? (
+          <><span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />{isFree ? 'Activating access…' : 'Processing payment…'}</>
+        ) : isFree ? (
+          <><CheckCircle size={16} />Activate Free Access</>
+        ) : (
+          <><Lock size={16} />Pay {plan.price} — Get Instant Access</>
+        )}
+      </motion.button>
 
       <p style={{ color: '#334155', fontSize: 12, textAlign: 'center', marginTop: 14, lineHeight: 1.6 }}>
         Payments processed securely by Stripe. Your card details never touch our servers.
