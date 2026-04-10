@@ -7,9 +7,17 @@
  *
  * POST /api/stripe-payment  { action: 'confirm', paymentIntentId, plan, userId }
  *   → { success }
+ *
+ * POST /api/stripe-payment  { action: 'free_purchase', plan, userId, discountCode }
+ *   → { success }  (records purchase with $0, no Stripe charge)
  */
 
 import { createClient } from '@supabase/supabase-js';
+
+// Discount codes → discount percentage (100 = free)
+const DISCOUNT_CODES = {
+  'StudyyHarderOKAY!1a45$': 100,
+};
 
 const PLANS = {
   full_access:    { label: 'Pilot Essentials — Full Access',    amountCents: 39900 },
@@ -114,6 +122,53 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error('Stripe confirm error:', err);
       return res.status(500).json({ error: 'Confirmation failed' });
+    }
+  }
+
+  // ── Validate discount code (dry-run, no DB write) ─────────────────────────
+  if (action === 'validate_discount') {
+    const { discountCode } = req.body || {};
+    const discount = DISCOUNT_CODES[discountCode];
+    if (!discount) return res.status(200).json({ valid: false, error: 'Invalid discount code.' });
+    return res.status(200).json({ valid: true, discountPct: discount });
+  }
+
+  // ── Free purchase via discount code ───────────────────────────────────────
+  if (action === 'free_purchase') {
+    const { discountCode } = req.body || {};
+    const discount = DISCOUNT_CODES[discountCode];
+    if (!discount || discount < 100) {
+      return res.status(400).json({ error: 'Invalid or insufficient discount code' });
+    }
+
+    try {
+      const supabase = createClient(
+        process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+      );
+
+      const cfiExpiry = plan === 'cfi_mentorship'
+        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+
+      const { error: dbError } = await supabase.from('purchases').upsert({
+        user_id: userId,
+        plan,
+        stripe_payment_id: `discount_${discountCode}_${userId}_${Date.now()}`,
+        amount_cents: 0,
+        status: 'completed',
+        cfi_access_expires_at: cfiExpiry,
+      }, { onConflict: 'user_id' });
+
+      if (dbError) {
+        console.error('Supabase free purchase error:', dbError);
+        return res.status(500).json({ error: 'Failed to record purchase' });
+      }
+
+      return res.status(200).json({ success: true, plan });
+    } catch (err) {
+      console.error('Free purchase error:', err);
+      return res.status(500).json({ error: 'Free purchase failed' });
     }
   }
 
