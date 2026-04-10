@@ -13,6 +13,7 @@ import Leaderboard from './pages/Leaderboard';
 import AdminPanel from './pages/AdminPanel';
 import AIInstructor from './pages/AIInstructor';
 import Checkout from './pages/Checkout';
+import ThankYou from './pages/ThankYou';
 import PaywallGate from './components/PaywallGate';
 
 // Blog pages
@@ -95,6 +96,7 @@ function AppRoutes() {
         <Route path="/login" element={<Auth />} />
         {/* Checkout — public so unauthenticated users can browse, login prompt inside */}
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/thank-you" element={<ThankYou />} />
         {/* Blog routes — always public */}
         <Route path="/blog" element={<BlogIndex />} />
         <Route path="/faa-written-test-prep" element={<FAAWrittenTestPrep />} />
@@ -121,6 +123,7 @@ function AppRoutes() {
       <Route path="/login" element={<Navigate to="/app" replace />} />
       {/* Checkout accessible while logged in */}
       <Route path="/checkout" element={<Checkout />} />
+      <Route path="/thank-you" element={<ThankYou />} />
       {/* Blog routes — accessible while logged in too */}
       <Route path="/blog" element={<BlogIndex />} />
       <Route path="/faa-written-test-prep" element={<FAAWrittenTestPrep />} />

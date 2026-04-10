@@ -120,7 +120,7 @@ function PaymentForm({ plan, planKey }) {
         });
 
         setSuccess(true);
-        setTimeout(() => navigate('/app'), 3000);
+        setTimeout(() => navigate(`/thank-you?plan=${planKey}`), 1500);
       }
     } catch (err) {
       console.error('Payment error:', err);
