@@ -86,23 +86,43 @@ export default function Checkout() {
         return;
       }
 
+      let card;
       try {
         const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
         paymentsRef.current = payments;
-
-        const card = await payments.card();
-
-        if (destroyed) { card.destroy(); return; }
-        await card.attach('#sq-card-container');
-        cardInstance = card;
-        setSqCard(card);
-        setCardReady(true);
+        card = await payments.card();
       } catch (err) {
-        console.error('Square init error:', err);
-        // Surface the actual Square error message to help diagnose domain/config issues
-        const msg = err?.message || JSON.stringify(err) || 'Unknown error';
-        setError(`Payment form error: ${msg}`);
+        const msg = err?.message || '';
+        // Square SDK internally throws non-fatal style warnings — ignore them and retry bare
+        if (msg.toLowerCase().includes('style') || msg.toLowerCase().includes('css')) {
+          console.warn('Square style warning (non-fatal):', msg);
+          try {
+            const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+            paymentsRef.current = payments;
+            card = await payments.card();
+          } catch (err2) {
+            console.error('Square init error:', err2);
+            setError('Payment form failed to load. Please refresh the page.');
+            return;
+          }
+        } else {
+          console.error('Square init error:', err);
+          setError('Payment form failed to load. Please refresh the page.');
+          return;
+        }
       }
+
+      if (destroyed) { card.destroy(); return; }
+      try {
+        await card.attach('#sq-card-container');
+      } catch (attachErr) {
+        console.error('Square attach error:', attachErr);
+        setError('Payment form failed to load. Please refresh the page.');
+        return;
+      }
+      cardInstance = card;
+      setSqCard(card);
+      setCardReady(true);
     };
 
     const scriptId = 'square-web-sdk';
