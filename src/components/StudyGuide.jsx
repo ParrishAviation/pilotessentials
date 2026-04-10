@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BookOpen, Lightbulb, AlertTriangle, Brain, FileText, Target,
-  ChevronDown, ChevronUp, RefreshCw, Loader2, Zap, ExternalLink,
-  CheckSquare, Calculator, Star, BookMarked, Eye, EyeOff
+  BookOpen, AlertTriangle, Brain, FileText, Target,
+  Zap, ExternalLink, CheckSquare, Calculator, BookMarked, Eye, EyeOff
 } from 'lucide-react';
 import { getLessonTopics } from '../data/lessonTopics';
 import { FAA_SUPPLEMENT_PDF, FIGURE_PAGES } from '../data/courses';
+import { STATIC_STUDY_GUIDES } from '../data/staticStudyGuides';
 
 // ─── Section card wrapper ─────────────────────────────────────────────────────
 function Section({ icon, title, accentColor = '#38bdf8', children, delay = 0 }) {
@@ -292,94 +292,10 @@ function ReferencesRow({ references }) {
   );
 }
 
-// ─── Loading skeleton ─────────────────────────────────────────────────────────
-function LoadingSkeleton() {
-  return (
-    <div style={{ padding: '4px 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <Loader2 size={18} color="#38bdf8" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>
-            Generating your study guide with Claude AI…
-          </div>
-          <div style={{ fontSize: 12, color: '#475569' }}>
-            Drawing from PHAK, FAA test bank, and exam figures — this takes 15-20 seconds
-          </div>
-        </div>
-      </div>
-      {[180, 120, 220, 160].map((w, i) => (
-        <div key={i} style={{
-          height: i % 2 === 0 ? 80 : 56, borderRadius: 12,
-          background: 'rgba(255,255,255,0.04)', marginBottom: 12,
-          animation: `pulse-skeleton 1.8s ease-in-out ${i * 0.15}s infinite`,
-        }} />
-      ))}
-      <style>{`
-        @keyframes pulse-skeleton { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
-        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-      `}</style>
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function StudyGuide({ lesson, courseId, chapterTitle, courseTitle, isAdmin }) {
-  const [guide, setGuide] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [cached, setCached] = useState(false);
-  const [generatedAt, setGeneratedAt] = useState(null);
-
   const topicMeta = getLessonTopics(lesson.id);
-
-  const fetchGuide = async (regenerate = false) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const payload = {
-        lessonId: lesson.id,
-        lessonTitle: lesson.title,
-        chapterTitle,
-        courseTitle,
-        courseId,
-        phak: topicMeta?.phak || null,
-        afh: topicMeta?.afh || null,
-        cfr: topicMeta?.cfr || null,
-        aim: topicMeta?.aim || null,
-        figures: topicMeta?.figures || [],
-        topics: topicMeta?.topics || [],
-        regenerate,
-      };
-
-      const res = await fetch('/api/study-guide', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to generate study guide');
-      }
-
-      setGuide(data.guide);
-      setCached(data.cached ?? false);
-      setGeneratedAt(data.generatedAt || null);
-    } catch (err) {
-      setError(err.message);
-    }
-    setLoading(false);
-  };
-
-  // Auto-fetch on lesson change
-  useEffect(() => {
-    if (lesson?.type === 'quiz') return;
-    setGuide(null);
-    setError(null);
-    fetchGuide(false);
-  }, [lesson.id]);
+  const guide = STATIC_STUDY_GUIDES[lesson.id] || null;
 
   if (lesson?.type === 'quiz') {
     return (
@@ -394,45 +310,18 @@ export default function StudyGuide({ lesson, courseId, chapterTitle, courseTitle
     );
   }
 
-  if (loading) return <LoadingSkeleton />;
-
-  if (error) {
-    const isKeyMissing = error.includes('ANTHROPIC_API_KEY');
+  if (!guide) {
     return (
       <div style={{
-        padding: '24px', borderRadius: 16,
-        background: 'rgba(239,68,68,0.06)',
-        border: '1px solid rgba(239,68,68,0.2)',
+        padding: '32px', textAlign: 'center',
+        color: '#475569', fontSize: 14,
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 16, background: 'rgba(255,255,255,0.02)',
       }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <AlertTriangle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#fca5a5', marginBottom: 6 }}>
-              {isKeyMissing ? 'API Key Not Configured' : 'Could not generate study guide'}
-            </div>
-            <div style={{ fontSize: 12, color: '#ef4444', lineHeight: 1.6, marginBottom: 12 }}>
-              {isKeyMissing
-                ? 'Add your ANTHROPIC_API_KEY to Vercel environment variables (Project Settings → Environment Variables), then redeploy.'
-                : error}
-            </div>
-            <button
-              onClick={() => fetchGuide(false)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 16px', borderRadius: 8, cursor: 'pointer',
-                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-                color: '#f87171', fontSize: 12, fontWeight: 700,
-              }}
-            >
-              <RefreshCw size={12} /> Try Again
-            </button>
-          </div>
-        </div>
+        Study guide coming soon for this lesson.
       </div>
     );
   }
-
-  if (!guide) return null;
 
   // Handle raw text fallback
   if (guide.rawText) {
@@ -461,50 +350,25 @@ export default function StudyGuide({ lesson, courseId, chapterTitle, courseTitle
           border: '1px solid rgba(56,189,248,0.15)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <div style={{
-                fontSize: 10, fontWeight: 800, color: '#818cf8',
-                textTransform: 'uppercase', letterSpacing: 1,
-                background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.25)',
-                padding: '2px 8px', borderRadius: 5,
-              }}>
-                AI Study Guide
-              </div>
-              {cached && (
-                <div style={{
-                  fontSize: 10, fontWeight: 700, color: '#4ade80',
-                  background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)',
-                  padding: '2px 8px', borderRadius: 5,
-                }}>
-                  Cached
-                </div>
-              )}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <div style={{
+              fontSize: 10, fontWeight: 800, color: '#818cf8',
+              textTransform: 'uppercase', letterSpacing: 1,
+              background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.25)',
+              padding: '2px 8px', borderRadius: 5,
+            }}>
+              Study Guide
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', lineHeight: 1.5 }}>
-              {guide.headline}
-            </div>
-            {topicMeta?.phak && (
-              <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>
-                📘 {topicMeta.phak}
-                {topicMeta?.cfr && ` • ${topicMeta.cfr}`}
-              </div>
-            )}
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => fetchGuide(true)}
-              title="Regenerate study guide"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#64748b', fontSize: 11, fontWeight: 700, flexShrink: 0,
-              }}
-            >
-              <RefreshCw size={11} /> Regenerate
-            </button>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', lineHeight: 1.5 }}>
+            {guide.headline}
+          </div>
+          {topicMeta?.phak && (
+            <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>
+              📘 {topicMeta.phak}
+              {topicMeta?.cfr && ` • ${topicMeta.cfr}`}
+            </div>
           )}
         </div>
       </motion.div>
