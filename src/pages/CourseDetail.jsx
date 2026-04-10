@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -407,6 +407,43 @@ export default function CourseDetail() {
   const [activeLesson, setActiveLesson] = useState(firstUncompleted || allLessons[0]);
   const [videoUrls, setVideoUrls] = useState({});
   const [hiddenLessons, setHiddenLessons] = useState(new Set());
+  const [miniConfetti, setMiniConfetti] = useState([]);
+
+  const playCompleteSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99]; // C5 E5 G5 — major chord arpeggio
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.12;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.start(t);
+        osc.stop(t + 0.4);
+      });
+    } catch (_) {}
+  }, []);
+
+  const triggerMiniConfetti = useCallback(() => {
+    const colors = ['#38bdf8', '#818cf8', '#c084fc', '#4ade80', '#f59e0b'];
+    const pieces = Array.from({ length: 28 }, (_, i) => ({
+      id: Date.now() + i,
+      color: colors[i % colors.length],
+      x: (Math.random() - 0.5) * 220,
+      y: -(60 + Math.random() * 80),
+      rot: (Math.random() - 0.5) * 720,
+      size: 5 + Math.random() * 5,
+      circle: Math.random() > 0.5,
+    }));
+    setMiniConfetti(pieces);
+    setTimeout(() => setMiniConfetti([]), 900);
+  }, []);
 
   // Fetch video URLs for this course
   useEffect(() => {
@@ -464,6 +501,8 @@ export default function CourseDetail() {
   const handleEnroll = () => enrollInCourse(course.id);
 
   const handleCompleteLesson = () => {
+    playCompleteSound();
+    triggerMiniConfetti();
     completeLesson(activeLesson.id, activeLesson.xp);
     // Check if module is complete (use expandedModules)
     const parentModule = expandedModules.find(m => m.lessons.some(l => l.id === activeLesson.id));
@@ -662,7 +701,23 @@ export default function CourseDetail() {
                     />
 
                     {/* Complete button */}
-                    <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end', position: 'relative' }}>
+                      {/* Mini confetti burst */}
+                      {miniConfetti.map(p => (
+                        <motion.div
+                          key={p.id}
+                          initial={{ x: 0, y: 0, opacity: 1, rotate: 0, scale: 1 }}
+                          animate={{ x: p.x, y: p.y, opacity: 0, rotate: p.rot, scale: 0.4 }}
+                          transition={{ duration: 0.75, ease: 'easeOut' }}
+                          style={{
+                            position: 'absolute', right: 60, bottom: 10,
+                            width: p.size, height: p.size,
+                            borderRadius: p.circle ? '50%' : 2,
+                            background: p.color,
+                            pointerEvents: 'none', zIndex: 10,
+                          }}
+                        />
+                      ))}
                       {user.completedLessons.includes(activeLesson.id) ? (
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 8,
