@@ -49,12 +49,15 @@ function expandLesson(lesson) {
 
 // Expand modules so every video lesson becomes two entries (a + b)
 // Lessons with skipGuide: true only get the video part (no study guide)
-function expandModules(modules) {
+// Lessons with deleted: true are stripped out (students never see them)
+function expandModules(modules, isAdmin = false) {
   return modules.map(mod => ({
     ...mod,
-    lessons: mod.lessons.flatMap(lesson =>
-      lesson.type === 'video' && !lesson.skipGuide ? expandLesson(lesson) : [lesson]
-    ),
+    lessons: mod.lessons
+      .filter(lesson => isAdmin || !lesson.deleted)
+      .flatMap(lesson =>
+        lesson.type === 'video' && !lesson.skipGuide ? expandLesson(lesson) : [lesson]
+      ),
   }));
 }
 
@@ -400,7 +403,7 @@ export default function CourseDetail() {
   const isAdmin = ADMIN_EMAILS.includes(authUser?.email);
 
   // Expand modules to include a guide lesson after every video lesson
-  const expandedModules = expandModules(course.modules);
+  const expandedModules = expandModules(course.modules, isAdmin);
   const allLessons = expandedModules.flatMap(m => m.lessons);
 
   const firstUncompleted = allLessons.find(l => !user.completedLessons.includes(l.id));
