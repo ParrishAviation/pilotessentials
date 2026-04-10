@@ -275,6 +275,7 @@ export const COURSES = [
   },
   {
     id: 'instrument-rating',
+    underConstruction: true,
     title: 'Instrument Rating (IFR)',
     subtitle: 'FAA Instrument Written Exam Prep',
     description: 'Conquer IFR procedures, approach charts, holding patterns, and instrument meteorological conditions for your Instrument Rating.',
@@ -326,6 +327,7 @@ export const COURSES = [
   },
   {
     id: 'commercial-pilot',
+    underConstruction: true,
     title: 'Commercial Pilot (CPL)',
     subtitle: 'FAA Commercial Written Exam Prep',
     description: 'Advance your aeronautical knowledge with complex aircraft systems, advanced maneuvers, and commercial operating rules.',
@@ -367,6 +369,7 @@ export const COURSES = [
   },
   {
     id: 'flight-instructor',
+    underConstruction: true,
     title: 'Flight Instructor (CFI)',
     subtitle: 'FAA CFI Written Exam Prep',
     description: 'Learn the fundamentals of teaching flight, lesson planning, student evaluation, and the fundamentals of flight instruction.',

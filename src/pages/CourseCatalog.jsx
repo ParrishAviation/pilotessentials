@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Users, Clock, BookOpen, Zap, ChevronRight, Search, Filter } from 'lucide-react';
+import { Star, Users, Clock, BookOpen, Zap, ChevronRight, Search, HardHat } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
 
@@ -11,6 +11,100 @@ const DIFFICULTY_COLORS = {
   'Advanced': '#ef4444',
   'Expert': '#c084fc',
 };
+
+function UnderConstructionCard({ course }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 20,
+        overflow: 'hidden',
+        cursor: 'default',
+        position: 'relative',
+      }}
+    >
+      {/* Dimmed content */}
+      <div style={{ opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
+        {/* Header */}
+        <div style={{
+          padding: '24px 24px 20px',
+          background: `linear-gradient(135deg, ${course.bgColor}, transparent)`,
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{
+              display: 'inline-block',
+              padding: '3px 10px', borderRadius: 20,
+              background: `${course.badgeColor}22`,
+              border: `1px solid ${course.badgeColor}55`,
+              fontSize: 11, fontWeight: 700, color: course.badgeColor,
+              textTransform: 'uppercase', letterSpacing: 0.5,
+            }}>{course.badge}</div>
+          </div>
+          <div style={{ fontSize: 44, marginBottom: 14 }}>{course.icon}</div>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', margin: '0 0 4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+            {course.title}
+          </h3>
+          <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>{course.subtitle}</div>
+          <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, margin: 0 }}>{course.description}</p>
+        </div>
+        <div style={{ padding: '16px 24px 24px' }}>
+          <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <BookOpen size={13} color="#64748b" />
+              <span style={{ fontSize: 12, color: '#64748b' }}>{course.totalLessons} lessons</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Clock size={13} color="#64748b" />
+              <span style={{ fontSize: 12, color: '#64748b' }}>{course.totalHours}h content</span>
+            </div>
+          </div>
+          <div style={{
+            width: '100%', padding: '12px', borderRadius: 12,
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            height: 44,
+          }} />
+        </div>
+      </div>
+
+      {/* Under Construction overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(6,15,30,0.55)',
+        backdropFilter: 'blur(2px)',
+      }}>
+        <div style={{
+          background: 'rgba(245,158,11,0.12)',
+          border: '1px solid rgba(245,158,11,0.35)',
+          borderRadius: 16, padding: '20px 28px',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: 'rgba(245,158,11,0.15)',
+            border: '1px solid rgba(245,158,11,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 12px',
+          }}>
+            <HardHat size={22} color="#f59e0b" />
+          </div>
+          <div style={{ color: '#fbbf24', fontWeight: 800, fontSize: 15, fontFamily: "'Space Grotesk', sans-serif", marginBottom: 4 }}>
+            Under Construction
+          </div>
+          <div style={{ color: '#78716c', fontSize: 12, lineHeight: 1.5 }}>
+            Coming soon — check back later
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 function CourseCard({ course, enrolled, completed, progress, totalLessons, onClick }) {
   const pct = totalLessons ? Math.round((progress / totalLessons) * 100) : 0;
@@ -241,7 +335,10 @@ export default function CourseCatalog() {
 
       {/* Course Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
-        {filtered.map((course, i) => {
+        {filtered.map((course) => {
+          if (course.underConstruction) {
+            return <UnderConstructionCard key={course.id} course={course} />;
+          }
           const enrolled = user.enrolledCourses.includes(course.id);
           const allLessons = course.modules.flatMap(m => m.lessons);
           const progress = allLessons.filter(l => user.completedLessons.includes(l.id)).length;
