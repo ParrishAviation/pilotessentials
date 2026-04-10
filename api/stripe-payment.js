@@ -47,7 +47,7 @@ async function findOrCreateUser(supabase, email, name, phone) {
   // Try to invite — this creates the account AND sends the welcome/set-password email
   const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
     data: { full_name: name || '', phone: phone || '' },
-    redirectTo: (process.env.VITE_PUBLIC_URL || 'https://pilotessentials.vercel.app') + '/app',
+    redirectTo: (process.env.VITE_PUBLIC_URL || 'https://www.mypilotessentials.com') + '/app',
   });
 
   if (!inviteError) {
