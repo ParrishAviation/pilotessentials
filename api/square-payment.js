@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         source_id: sourceId,
-        idempotency_key: `${userId}-${plan}-${Date.now()}`,
+        idempotency_key: `${userId.replace(/-/g, '').slice(0, 28)}-${Date.now()}`,
         amount_money: {
           amount: planInfo.amountCents,
           currency: 'USD',
