@@ -90,22 +90,7 @@ export default function Checkout() {
         const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
         paymentsRef.current = payments;
 
-        const card = await payments.card({
-          style: {
-            '.input-container': {
-              borderColor: 'rgba(255,255,255,0.2)',
-            },
-            '.input-container.is-focus': {
-              borderColor: '#38bdf8',
-            },
-            '.input-container.is-error': {
-              borderColor: '#f87171',
-            },
-            input: {
-              color: '#ffffff',
-            },
-          },
-        });
+        const card = await payments.card();
 
         if (destroyed) { card.destroy(); return; }
         await card.attach('#sq-card-container');
