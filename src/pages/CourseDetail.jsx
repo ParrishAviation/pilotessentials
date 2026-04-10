@@ -48,11 +48,12 @@ function expandLesson(lesson) {
 }
 
 // Expand modules so every video lesson becomes two entries (a + b)
+// Lessons with skipGuide: true only get the video part (no study guide)
 function expandModules(modules) {
   return modules.map(mod => ({
     ...mod,
     lessons: mod.lessons.flatMap(lesson =>
-      lesson.type === 'video' ? expandLesson(lesson) : [lesson]
+      lesson.type === 'video' && !lesson.skipGuide ? expandLesson(lesson) : [lesson]
     ),
   }));
 }
