@@ -23,10 +23,6 @@ export const COURSES = [
         title: 'Introduction',
         lessons: [
           { id: 'ppl-intro-meet', title: 'Meet Your Instructor: Tim Martin-Vegue', duration: '--:--', xp: 25, type: 'video', skipGuide: true },
-          { id: 'ppl-intro-resources', title: 'Resources', duration: '--:--', xp: 25, type: 'video', deleted: true },
-          { id: 'ppl-intro-scheduling', title: 'Scheduling Your FAA Written Test', duration: '--:--', xp: 25, type: 'video', deleted: true },
-          { id: 'ppl-intro-facebook', title: 'Join the Facebook Group!', duration: '--:--', xp: 25, type: 'video', deleted: true },
-          { id: 'ppl-intro-comments', title: 'Comments Are Turned On', duration: '--:--', xp: 25, type: 'video', deleted: true },
         ]
       },
       {
