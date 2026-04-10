@@ -2279,6 +2279,36 @@ export const QUIZ_BANK = {
   },
 };
 
+// Chapter quiz aliases — map each end-of-section quiz ID to questions from the appropriate topic pool
+const _chapterQuizMap = {
+  'ppl-ch1-quiz':  { title: 'Chapter 1: Aerodynamics Quiz',          sourceKey: 'ppl-extra-aero',       slice: [0, 10] },
+  'ppl-ch2-quiz':  { title: 'Chapter 2: Aircraft Systems Quiz',       sourceKey: 'ppl-l10',              slice: [0, 10] },
+  'ppl-ch3-quiz':  { title: 'Chapter 3: Flight Controls Quiz',        sourceKey: 'ppl-extra-controls',   slice: [0, 9]  },
+  'ppl-ch4-quiz':  { title: 'Chapter 4: Altitudes Quiz',              sourceKey: 'ppl-l5',               slice: [0, 10] },
+  'ppl-ch5-quiz':  { title: 'Chapter 5: Aircraft Documents Quiz',     sourceKey: 'ppl-extra-manuals',    slice: [0, 10] },
+  'ppl-ch6-quiz':  { title: 'Chapter 6: Flight Instruments Quiz',     sourceKey: 'ppl-extra-instruments',slice: [0, 10] },
+  'ppl-ch7-quiz':  { title: 'Chapter 7: Weight & Balance Quiz',       sourceKey: 'ppl-extra-wb',         slice: [0, 10] },
+  'ppl-ch8-quiz':  { title: 'Chapter 8: Aircraft Performance Quiz',   sourceKey: 'ppl-extra-perf',       slice: [0, 10] },
+  'ppl-ch9-quiz':  { title: 'Chapter 9: Weather Theory Quiz',         sourceKey: 'ppl-l15',              slice: [0, 10] },
+  'ppl-ch10-quiz': { title: 'Chapter 10: Weather Services Quiz',      sourceKey: 'ppl-extra-wx-svcs',    slice: [0, 10] },
+  'ppl-ch11-quiz': { title: 'Chapter 11: Airport Operations Quiz',    sourceKey: 'ppl-extra-airport',    slice: [0, 10] },
+  'ppl-ch12-quiz': { title: 'Chapter 12: Airspace Quiz',              sourceKey: 'ppl-l25',              slice: [0, 10] },
+  'ppl-ch13-quiz': { title: 'Chapter 13: Navigation Quiz',            sourceKey: 'ppl-l20',              slice: [0, 10] },
+  'ppl-ch14-quiz': { title: 'Chapter 14: Aeromedical Factors Quiz',   sourceKey: 'ppl-extra-aeromedical',slice: [0, 10] },
+  'ppl-ch15-quiz': { title: 'Chapter 15: Regulations Quiz',           sourceKey: 'ppl-l25',              slice: [10, 20] },
+  'ppl-ch16-quiz': { title: 'Chapter 16: Pilot Qualification Quiz',   sourceKey: 'ppl-extra-intro',      slice: [0, 10] },
+  'ppl-ch17-quiz': { title: 'Chapter 17: Miscellaneous Quiz',         sourceKey: 'ppl-extra-adm',        slice: [0, 6]  },
+};
+for (const [key, cfg] of Object.entries(_chapterQuizMap)) {
+  const src = QUIZ_BANK[cfg.sourceKey];
+  if (src) {
+    QUIZ_BANK[key] = {
+      title: cfg.title,
+      questions: src.questions.slice(cfg.slice[0], cfg.slice[1]),
+    };
+  }
+}
+
 export const BADGES = [
   { id: 'first-flight', icon: '🛫', title: 'First Flight', description: 'Complete your first lesson', xpRequired: 0, lessonsRequired: 1 },
   { id: 'sky-student', icon: '📚', title: 'Sky Student', description: 'Complete 10 lessons', xpRequired: 0, lessonsRequired: 10 },
