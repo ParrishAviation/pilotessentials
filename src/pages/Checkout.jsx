@@ -69,9 +69,12 @@ function PaymentForm({ plan, planKey }) {
   const { user } = useAuth(); // may be null for guests
 
   // Contact fields
-  const [name, setName]   = useState(user?.user_metadata?.full_name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState('');
+  const [firstName, setFirstName] = useState(user?.user_metadata?.full_name?.split(' ')[0] || '');
+  const [lastName, setLastName]   = useState(user?.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '');
+  const [email, setEmail]         = useState(user?.email || '');
+  const [phone, setPhone]         = useState('');
+
+  const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
   const [processing, setProcessing]     = useState(false);
   const [error, setError]               = useState('');
@@ -89,7 +92,7 @@ function PaymentForm({ plan, planKey }) {
 
   // Field validation
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const formValid  = name.trim() && emailValid && phone.trim() && (isFree || cardComplete);
+  const formValid  = firstName.trim() && lastName.trim() && emailValid && phone.trim() && (isFree || cardComplete);
 
   const handleApplyDiscount = async () => {
     if (!discountInput.trim()) return;
@@ -130,7 +133,7 @@ function PaymentForm({ plan, planKey }) {
 
     // Shared contact payload — use logged-in userId if available
     const contact = {
-      name: name.trim(),
+      name: fullName,
       email: email.trim(),
       phone: phone.trim(),
       userId: user?.id || undefined,
@@ -167,7 +170,7 @@ function PaymentForm({ plan, planKey }) {
       // Step 2: Confirm card with Stripe.js
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         createData.clientSecret,
-        { payment_method: { card: elements.getElement(CardElement), billing_details: { name: name.trim(), email: email.trim(), phone: phone.trim() } } }
+        { payment_method: { card: elements.getElement(CardElement), billing_details: { name: fullName, email: email.trim(), phone: phone.trim() } } }
       );
       if (stripeError) { setError(stripeError.message || 'Payment failed.'); setProcessing(false); return; }
 
@@ -215,12 +218,21 @@ function PaymentForm({ plan, planKey }) {
     <form onSubmit={handleSubmit}>
 
       {/* ── Contact fields ── */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Full Name</label>
-        <input
-          type="text" value={name} onChange={e => setName(e.target.value)}
-          placeholder="Jane Smith" required style={inputStyle}
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+        <div>
+          <label style={labelStyle}>First Name</label>
+          <input
+            type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+            placeholder="Jane" required style={inputStyle}
+          />
+        </div>
+        <div>
+          <label style={labelStyle}>Last Name</label>
+          <input
+            type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+            placeholder="Smith" required style={inputStyle}
+          />
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
