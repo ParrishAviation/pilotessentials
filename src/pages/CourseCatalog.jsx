@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Users, Clock, BookOpen, Zap, ChevronRight, Search, HardHat } from 'lucide-react';
+import { Clock, BookOpen, Zap, ChevronRight, Search, HardHat } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
 
@@ -173,14 +173,6 @@ function CourseCard({ course, enrolled, completed, progress, totalLessons, onCli
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <Clock size={13} color="#64748b" />
             <span style={{ fontSize: 12, color: '#64748b' }}>{course.totalHours}h content</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Users size={13} color="#64748b" />
-            <span style={{ fontSize: 12, color: '#64748b' }}>{course.students.toLocaleString()} students</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Star size={13} fill="#f59e0b" color="#f59e0b" />
-            <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{course.rating}</span>
           </div>
         </div>
 
