@@ -31,10 +31,10 @@ async function loadHandler(path) {
   return mod.default;
 }
 
-// Route: POST /api/square-payment
-app.post('/api/square-payment', async (req, res) => {
+// Route: POST /api/stripe-payment
+app.post('/api/stripe-payment', async (req, res) => {
   try {
-    const handler = await loadHandler('./api/square-payment.js');
+    const handler = await loadHandler('./api/stripe-payment.js');
     await handler(req, res);
   } catch (err) {
     console.error(err);

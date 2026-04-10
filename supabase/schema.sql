@@ -185,13 +185,13 @@ create policy "Admins can restore lessons" on public.hidden_lessons
   );
 
 -- ============================================================
--- Purchases — tracks Square payments per user
+-- Purchases — tracks Stripe payments per user
 -- ============================================================
 create table if not exists public.purchases (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
   plan text not null check (plan in ('full_access', 'cfi_mentorship')),
-  square_payment_id text not null unique,
+  stripe_payment_id text not null unique,
   amount_cents integer not null,
   status text not null default 'completed',
   cfi_access_expires_at timestamptz,  -- set to now() + 12 months for cfi_mentorship
