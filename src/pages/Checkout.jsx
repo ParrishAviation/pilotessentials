@@ -102,11 +102,10 @@ export default function Checkout() {
             '.input-container.is-error': {
               borderColor: '#f87171',
             },
-            '.message-text': { color: '#94a3b8', fontSize: '13px' },
+            '.message-text': { color: '#94a3b8' },
             '.message-icon': { color: '#94a3b8' },
             input: {
               color: '#ffffff',
-              fontSize: '15px',
               fontWeight: '500',
             },
           },
