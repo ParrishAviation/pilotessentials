@@ -20,7 +20,7 @@ const Nav = () => (
 );
 
 export default function ThankYou() {
-  const { hasPaid, tierLoading } = useAuth();
+  const { hasPaid, tierLoading, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -28,15 +28,17 @@ export default function ThankYou() {
   const isGuest   = searchParams.get('guest') === '1';
   const planLabel = PLAN_LABELS[planKey] || 'Full Access';
 
-  // Guard: non-guest users who haven't paid get redirected to checkout
+  // Guard: only redirect logged-in users who haven't paid — never block guests
   useEffect(() => {
-    if (!isGuest && !tierLoading && !hasPaid) {
-      navigate('/checkout', { replace: true });
-    }
-  }, [isGuest, hasPaid, tierLoading, navigate]);
+    if (isGuest) return; // guest flow — always show, no auth required
+    if (authLoading || tierLoading) return; // wait for auth to resolve
+    if (!hasPaid) navigate('/checkout', { replace: true });
+  }, [isGuest, authLoading, tierLoading, hasPaid, navigate]);
 
-  if (!isGuest && tierLoading) return null;
-  if (!isGuest && !hasPaid)    return null;
+  // Guest: render immediately — no auth state needed
+  // Logged-in: wait for auth to resolve before showing or redirecting
+  if (!isGuest && (authLoading || tierLoading)) return null;
+  if (!isGuest && !hasPaid) return null;
 
   // ── Guest version: account was just created, email is on the way ──────────
   if (isGuest) {
