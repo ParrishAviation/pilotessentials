@@ -93,7 +93,6 @@ export default function Checkout() {
         const card = await payments.card({
           style: {
             '.input-container': {
-              borderRadius: '8px',
               borderColor: 'rgba(255,255,255,0.2)',
             },
             '.input-container.is-focus': {
@@ -102,11 +101,8 @@ export default function Checkout() {
             '.input-container.is-error': {
               borderColor: '#f87171',
             },
-            '.message-text': { color: '#94a3b8' },
-            '.message-icon': { color: '#94a3b8' },
             input: {
               color: '#ffffff',
-              fontWeight: '500',
             },
           },
         });
