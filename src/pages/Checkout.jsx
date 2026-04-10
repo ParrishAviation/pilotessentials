@@ -151,7 +151,7 @@ function PaymentForm({ plan, planKey }) {
         if (!res.ok || data.error) { setError(data.error || 'Failed to apply discount.'); setProcessing(false); return; }
         setSuccess(true);
         const isGuest = !user;
-        setTimeout(() => navigate(`/thank-you?plan=${planKey}${isGuest ? '&guest=1' : ''}`), 1500);
+        setTimeout(() => { window.location.href = `https://www.mypilotessentials.com/thank-you?plan=${planKey}${isGuest ? '&guest=1' : ''}`; }, 1500);
         return;
       }
 
@@ -183,7 +183,7 @@ function PaymentForm({ plan, planKey }) {
         });
         setSuccess(true);
         const isGuest = !user;
-        setTimeout(() => navigate(`/thank-you?plan=${planKey}${isGuest ? '&guest=1' : ''}`), 1500);
+        setTimeout(() => { window.location.href = `https://www.mypilotessentials.com/thank-you?plan=${planKey}${isGuest ? '&guest=1' : ''}`; }, 1500);
       }
     } catch (err) {
       console.error('Payment error:', err);
