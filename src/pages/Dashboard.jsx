@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, BookOpen, Trophy, Star, TrendingUp, Clock, Target, ChevronRight, Flame, Award } from 'lucide-react';
+import { Zap, BookOpen, Trophy, Star, TrendingUp, Clock, Target, ChevronRight, Flame, Award, Lock } from 'lucide-react';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { COURSES, BADGES } from '../data/courses';
 
 const LEVEL_TITLES = ['', 'Student Pilot', 'Solo Flyer', 'Cross-Country Pilot', 'Instrument Student', 'Commercial Trainee', 'CFI Candidate', 'Multi-Engine Pilot', 'ATP Candidate', 'Check Airman', 'Master Aviator'];
@@ -136,9 +137,82 @@ function BadgeShowcase({ badges }) {
   );
 }
 
+function UpgradeBanner({ onUpgrade }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      style={{
+        background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(234,88,12,0.08) 100%)',
+        border: '1px solid rgba(245,158,11,0.3)',
+        borderRadius: 16,
+        padding: '16px 24px',
+        marginBottom: 24,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 12,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 10,
+          background: 'rgba(245,158,11,0.15)',
+          border: '1px solid rgba(245,158,11,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Lock size={18} color="#f59e0b" />
+        </div>
+        <div>
+          <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 14, fontFamily: "'Space Grotesk', sans-serif" }}>
+            You're on the Free Plan
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 1 }}>
+            Upgrade to unlock all 17 chapters, AI study guides, practice tests, and more.
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => onUpgrade('full_access')}
+          style={{
+            padding: '9px 20px', borderRadius: 10,
+            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+            border: 'none', color: '#fff',
+            fontWeight: 700, fontSize: 14, cursor: 'pointer',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}
+        >
+          Full Access — $399
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => onUpgrade('cfi_mentorship')}
+          style={{
+            padding: '9px 20px', borderRadius: 10,
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            border: 'none', color: '#fff',
+            fontWeight: 700, fontSize: 14, cursor: 'pointer',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}
+        >
+          CFI Mentorship — $999
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, updateStreak } = useUser();
+  const { hasPaid, tierLoading } = useAuth();
 
   useEffect(() => {
     updateStreak();
@@ -155,6 +229,10 @@ export default function Dashboard() {
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: 1100 }}>
+      {/* Upgrade Banner — only shown to free users */}
+      {!tierLoading && !hasPaid && (
+        <UpgradeBanner onUpgrade={(plan) => navigate(`/checkout?plan=${plan}`)} />
+      )}
       {/* Hero Banner */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
