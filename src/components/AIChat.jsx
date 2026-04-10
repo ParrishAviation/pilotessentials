@@ -178,22 +178,27 @@ export default function AIChat() {
             onClick={() => setOpen(true)}
             style={{
               position: 'fixed', bottom: 28, right: 28, zIndex: 1000,
-              width: 58, height: 58, borderRadius: 18,
+              height: 52, borderRadius: 16,
+              padding: '0 20px 0 16px',
               background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
               border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 10,
               boxShadow: '0 4px 24px rgba(14,165,233,0.5), 0 0 0 1px rgba(14,165,233,0.3)',
-              fontSize: 24,
             }}
-            title="Ask Captain AI"
           >
-            ✈️
+            <span style={{ fontSize: 20, lineHeight: 1 }}>✈️</span>
+            <span style={{
+              fontSize: 14, fontWeight: 700, color: '#fff',
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: '-0.2px', whiteSpace: 'nowrap',
+            }}>AI Instructor</span>
             <motion.div
               style={{
-                position: 'absolute', inset: -2, borderRadius: 20,
+                position: 'absolute', inset: -2, borderRadius: 18,
                 border: '2px solid rgba(14,165,233,0.4)',
               }}
-              animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0, 0.6] }}
+              animate={{ scale: [1, 1.08, 1], opacity: [0.6, 0, 0.6] }}
               transition={{ duration: 2.5, repeat: Infinity }}
             />
           </motion.button>
