@@ -9,7 +9,7 @@
  *   SUPABASE_SERVICE_ROLE_KEY — Supabase service role key (for caching)
  */
 
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_API = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com') + '/v1/messages';
 const MODEL = 'claude-sonnet-4-6';
 
 function buildPrompt(lesson) {
@@ -185,7 +185,8 @@ export default async function handler(req, res) {
   const data = await anthropicRes.json();
 
   if (data.error) {
-    return res.status(500).json({ error: data.error.message || 'Anthropic API error' });
+    console.error('Anthropic error detail:', JSON.stringify(data.error));
+    return res.status(500).json({ error: data.error.message || JSON.stringify(data.error) || 'Anthropic API error' });
   }
 
   const rawText = data.content?.[0]?.text;
