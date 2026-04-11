@@ -16,6 +16,12 @@ import Checkout from './pages/Checkout';
 import ThankYou from './pages/ThankYou';
 import PaywallGate from './components/PaywallGate';
 
+// Ad landing pages
+import AdPage1 from './pages/ads/AdPage1';
+import AdPage2 from './pages/ads/AdPage2';
+import AdPage3 from './pages/ads/AdPage3';
+import AdPage4 from './pages/ads/AdPage4';
+
 // Blog pages
 import BlogIndex from './pages/blog/BlogIndex';
 import FAAWrittenTestPrep from './pages/blog/FAAWrittenTestPrep';
