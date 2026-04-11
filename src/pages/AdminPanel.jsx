@@ -216,12 +216,21 @@ export default function AdminPanel() {
   const [parseMsg, setParseMsg] = useState(null);
   const [parseDragging, setParseDragging] = useState(false);
 
-  // Mobile responsive
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
-  const [mobileView, setMobileView] = useState('list'); // 'list' | 'detail' (quiz tab)
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false); // videos tab
+  // Responsive breakpoints
+  const getBreakpoint = () => {
+    const w = window.innerWidth;
+    if (w <= 768) return 'mobile';
+    if (w <= 1024) return 'tablet';
+    return 'desktop';
+  };
+  const [breakpoint, setBreakpoint] = useState(getBreakpoint);
+  const isMobile = breakpoint === 'mobile';
+  const isTablet = breakpoint === 'tablet';
+  const isTouch = isMobile || isTablet; // shared touch-friendly sizing
+  const [mobileView, setMobileView] = useState('list'); // mobile only: 'list' | 'detail'
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false); // mobile videos tab only
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= 768);
+    const handler = () => setBreakpoint(getBreakpoint());
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, []);
@@ -625,7 +634,7 @@ export default function AdminPanel() {
     <div style={{ minHeight: '100vh', background: '#060f1e', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{
-        padding: isMobile ? '12px 16px' : '18px 32px',
+        padding: isMobile ? '12px 16px' : isTablet ? '14px 20px' : '18px 32px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         background: 'rgba(6,15,30,0.95)',
         display: 'flex', alignItems: 'center', gap: 16,
@@ -638,13 +647,13 @@ export default function AdminPanel() {
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
             color: '#94a3b8', fontSize: 13, fontWeight: 600,
-            padding: isMobile ? '8px 10px' : '7px 14px', borderRadius: 8, cursor: 'pointer',
+            padding: isTouch ? '8px 10px' : '7px 14px', borderRadius: 8, cursor: 'pointer',
             flexShrink: 0,
           }}
         >
           <ArrowLeft size={14} /> {!isMobile && 'Dashboard'}
         </button>
-        {!isMobile && <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />}
+        {!isTouch && <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />}
         <div style={{
           width: 32, height: 32, borderRadius: 10, flexShrink: 0,
           background: 'linear-gradient(135deg, #818cf8, #6366f1)',
@@ -654,10 +663,10 @@ export default function AdminPanel() {
         </div>
         {!isMobile && (
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>
+            <div style={{ fontSize: isTablet ? 14 : 16, fontWeight: 800, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>
               Admin Panel
             </div>
-            <div style={{ fontSize: 11, color: '#475569' }}>Content Manager</div>
+            {!isTablet && <div style={{ fontSize: 11, color: '#475569' }}>Content Manager</div>}
           </div>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -672,8 +681,8 @@ export default function AdminPanel() {
                 onClick={() => { setActiveTab(tab.key); setMobileView('list'); setMobileSidebarOpen(false); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  padding: isMobile ? '7px 12px' : '6px 14px',
-                  borderRadius: 7, fontSize: isMobile ? 12 : 13, fontWeight: 600, cursor: 'pointer',
+                  padding: isTouch ? '8px 12px' : '6px 14px',
+                  borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   background: activeTab === tab.key ? 'rgba(56,189,248,0.15)' : 'transparent',
                   border: `1px solid ${activeTab === tab.key ? 'rgba(56,189,248,0.3)' : 'transparent'}`,
                   color: activeTab === tab.key ? '#38bdf8' : '#64748b',
@@ -684,7 +693,7 @@ export default function AdminPanel() {
               </button>
             ))}
           </div>
-          {!isMobile && (
+          {!isTouch && (
             <div style={{
               padding: '5px 14px', borderRadius: 20,
               background: 'rgba(129,140,248,0.12)',
@@ -728,15 +737,15 @@ export default function AdminPanel() {
         {/* ── QUIZ BANK TAB ── */}
         {activeTab === 'quizzes' && (
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            {/* Left: quiz key list — full screen on mobile when mobileView==='list' */}
+            {/* Left: quiz key list — full screen on mobile, narrow sidebar on tablet/desktop */}
             <div style={{
-              width: isMobile ? '100%' : 260,
+              width: isMobile ? '100%' : isTablet ? 220 : 260,
               flexShrink: 0,
               display: isMobile && mobileView !== 'list' ? 'none' : 'flex',
               flexDirection: 'column',
               background: 'rgba(255,255,255,0.02)',
               borderRight: isMobile ? 'none' : '1px solid rgba(255,255,255,0.06)',
-              overflow: 'auto', padding: isMobile ? '16px 12px' : '12px 8px',
+              overflow: 'auto', padding: isTouch ? '16px 10px' : '12px 8px',
             }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, padding: '4px 8px 10px' }}>
                 Quiz Banks
@@ -749,15 +758,15 @@ export default function AdminPanel() {
                     onClick={() => { setSelectedQuizKey(key); setEditingQ(null); setEditForm(null); if (isMobile) setMobileView('detail'); }}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: isMobile ? '14px 12px' : '8px 10px',
+                      padding: isTouch ? '13px 10px' : '8px 10px',
                       borderRadius: 10, cursor: 'pointer', marginBottom: 4,
-                      background: !isMobile && selectedQuizKey === key ? 'rgba(56,189,248,0.1)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${!isMobile && selectedQuizKey === key ? 'rgba(56,189,248,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                      background: selectedQuizKey === key && !isMobile ? 'rgba(56,189,248,0.1)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${selectedQuizKey === key && !isMobile ? 'rgba(56,189,248,0.25)' : 'rgba(255,255,255,0.07)'}`,
                       textAlign: 'left',
                     }}
                   >
-                    <BookOpen size={isMobile ? 15 : 12} color={!isMobile && selectedQuizKey === key ? '#38bdf8' : '#475569'} />
-                    <span style={{ flex: 1, fontSize: isMobile ? 14 : 12, fontWeight: 500, color: !isMobile && selectedQuizKey === key ? '#38bdf8' : '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <BookOpen size={isTouch ? 14 : 12} color={selectedQuizKey === key && !isMobile ? '#38bdf8' : '#475569'} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: isTouch ? 13 : 12, fontWeight: 500, color: selectedQuizKey === key && !isMobile ? '#38bdf8' : '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {QUIZ_BANK[key].title}
                     </span>
                     {hasOverrides && (
@@ -771,10 +780,10 @@ export default function AdminPanel() {
               })}
             </div>
 
-            {/* Right: question list + editor — full screen on mobile when mobileView==='detail' */}
+            {/* Right: question list + editor */}
             <div style={{
               flex: 1, overflow: 'auto',
-              padding: isMobile ? '16px 14px 100px' : '28px 36px',
+              padding: isMobile ? '16px 14px 100px' : isTablet ? '20px 22px 80px' : '28px 36px',
               display: isMobile && mobileView !== 'detail' ? 'none' : 'block',
             }}>
               {/* Mobile back button */}
@@ -817,7 +826,7 @@ export default function AdminPanel() {
                           onClick={() => { setShowParseZone(v => !v); setShowAddForm(false); setParsedQuestions([]); setParseMsg(null); }}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 6,
-                            padding: isMobile ? '11px 14px' : '8px 16px',
+                            padding: isTouch ? '11px 14px' : '8px 16px',
                             borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                             background: showParseZone ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)',
                             border: `1px solid ${showParseZone ? 'rgba(129,140,248,0.5)' : 'rgba(129,140,248,0.25)'}`,
@@ -830,7 +839,7 @@ export default function AdminPanel() {
                           onClick={() => { setShowAddForm(v => !v); setShowParseZone(false); resetNewQForm(); setQuizMsg(null); }}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 6,
-                            padding: isMobile ? '11px 14px' : '8px 16px',
+                            padding: isTouch ? '11px 14px' : '8px 16px',
                             borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                             background: showAddForm ? 'rgba(56,189,248,0.2)' : 'rgba(56,189,248,0.08)',
                             border: `1px solid ${showAddForm ? 'rgba(56,189,248,0.5)' : 'rgba(56,189,248,0.25)'}`,
@@ -880,8 +889,8 @@ export default function AdminPanel() {
                             <Loader2 size={28} color="#818cf8" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 10px' }} />
                             <div style={{ fontSize: 14, color: '#818cf8', fontWeight: 600 }}>Parsing with AI…</div>
                           </div>
-                        ) : isMobile ? (
-                          /* Mobile: big camera button on top, browse below */
+                        ) : isTouch ? (
+                          /* Mobile/tablet: big camera button on top, browse below */
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <button
                               onClick={() => document.getElementById('parse-camera-input').click()}
@@ -1347,7 +1356,7 @@ export default function AdminPanel() {
         {/* ── END QUIZ BANK TAB ── */}
 
         {activeTab === 'videos' && <>
-        {/* Mobile overlay backdrop */}
+        {/* Mobile-only overlay backdrop */}
         {isMobile && mobileSidebarOpen && (
           <div
             onClick={() => setMobileSidebarOpen(false)}
@@ -1356,7 +1365,8 @@ export default function AdminPanel() {
         )}
         {/* Left: Course Tree */}
         <div style={{
-          width: isMobile ? 280 : 300, flexShrink: 0,
+          width: isMobile ? 280 : isTablet ? 230 : 300,
+          flexShrink: 0,
           background: '#0a1628',
           borderRight: '1px solid rgba(255,255,255,0.06)',
           overflow: 'auto',
@@ -1471,7 +1481,7 @@ export default function AdminPanel() {
                           onClick={() => { setSelectedLesson(lesson); if (isMobile) setMobileSidebarOpen(false); }}
                           style={{
                             width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                            padding: isMobile ? '12px 10px 12px 24px' : '7px 10px 7px 24px',
+                            padding: isTouch ? '12px 10px 12px 24px' : '7px 10px 7px 24px',
                             borderRadius: 8, cursor: 'pointer',
                             background: isSelected ? 'rgba(56,189,248,0.1)' : 'transparent',
                             border: `1px solid ${isSelected ? 'rgba(56,189,248,0.25)' : 'transparent'}`,
@@ -1506,8 +1516,8 @@ export default function AdminPanel() {
         </div>
 
         {/* Right: Upload Panel */}
-        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '16px 14px 80px' : '32px 40px' }}>
-          {/* Mobile: floating "Select Lesson" button */}
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '16px 14px 80px' : isTablet ? '20px 24px 60px' : '32px 40px' }}>
+          {/* Mobile only: floating "Select Lesson" button */}
           {isMobile && (
             <button
               onClick={() => setMobileSidebarOpen(true)}
