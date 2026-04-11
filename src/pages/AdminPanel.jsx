@@ -204,6 +204,18 @@ export default function AdminPanel() {
   const [quizSaving, setQuizSaving] = useState(false);
   const [quizMsg, setQuizMsg] = useState(null);
 
+  // New question state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newQForm, setNewQForm] = useState({ question: '', options: ['', '', ''], correct: 0, explanation: '' });
+  const [addingSaving, setAddingSaving] = useState(false);
+
+  // AI parse state
+  const [showParseZone, setShowParseZone] = useState(false);
+  const [parsedQuestions, setParsedQuestions] = useState([]); // preview before saving
+  const [parseLoading, setParseLoading] = useState(false);
+  const [parseMsg, setParseMsg] = useState(null);
+  const [parseDragging, setParseDragging] = useState(false);
+
   // Admin gate
   const isAdmin = ADMIN_EMAILS.includes(user?.email);
   if (!isAdmin) {
@@ -316,6 +328,150 @@ export default function AdminPanel() {
         return next;
       });
     }
+  };
+
+  // Generate a unique question ID that won't collide with static bank IDs (use timestamp-based)
+  const genQuestionId = () => Date.now() + Math.floor(Math.random() * 1000);
+
+  const resetNewQForm = () => setNewQForm({ question: '', options: ['', '', ''], correct: 0, explanation: '' });
+
+  const saveNewQuestion = async (formData) => {
+    if (!selectedQuizKey) return;
+    setAddingSaving(true);
+    const newId = genQuestionId();
+    const payload = {
+      quiz_key: selectedQuizKey,
+      question_id: newId,
+      question: formData.question.trim(),
+      options: formData.options,
+      correct: formData.correct,
+      explanation: formData.explanation.trim(),
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from('quiz_overrides').upsert(payload, { onConflict: 'quiz_key,question_id' });
+    setAddingSaving(false);
+    if (error) {
+      setQuizMsg({ type: 'error', text: error.message });
+    } else {
+      setOverrides(prev => ({
+        ...prev,
+        [selectedQuizKey]: {
+          ...(prev[selectedQuizKey] || {}),
+          [newId]: { question: formData.question.trim(), options: formData.options, correct: formData.correct, explanation: formData.explanation.trim() },
+        },
+      }));
+      setQuizMsg({ type: 'success', text: 'Question added!' });
+    }
+  };
+
+  const handleAddSubmit = async () => {
+    if (!newQForm.question.trim() || newQForm.options.some(o => !o.trim())) {
+      setQuizMsg({ type: 'error', text: 'Please fill in the question and all answer choices.' });
+      return;
+    }
+    await saveNewQuestion(newQForm);
+    resetNewQForm();
+    setShowAddForm(false);
+  };
+
+  // Read file as base64
+  const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result; // data:mime;base64,xxxxx
+      const base64 = result.split(',')[1];
+      resolve({ base64, mimeType: file.type });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const handleParseFile = async (file) => {
+    setParseLoading(true);
+    setParsedQuestions([]);
+    setParseMsg(null);
+
+    let body;
+    const mime = file.type;
+
+    if (mime.startsWith('image/')) {
+      const { base64 } = await readFileAsBase64(file);
+      body = { type: 'image', mediaType: mime, data: base64 };
+    } else if (mime === 'application/pdf') {
+      const { base64 } = await readFileAsBase64(file);
+      body = { type: 'document', mediaType: 'application/pdf', data: base64 };
+    } else {
+      // Plain text / docx / etc — read as text
+      const text = await file.text().catch(() => null);
+      if (!text) {
+        setParseMsg({ type: 'error', text: 'Could not read file as text. Use an image, PDF, or plain text file.' });
+        setParseLoading(false);
+        return;
+      }
+      body = { type: 'text', data: text };
+    }
+
+    try {
+      const res = await fetch('/api/parse-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setParseMsg({ type: 'error', text: data.error || 'Parsing failed' });
+      } else if (!data.questions.length) {
+        setParseMsg({ type: 'error', text: 'No questions found in this file. Try a different file or add manually.' });
+      } else {
+        setParsedQuestions(data.questions.map((q, i) => ({ ...q, _tempId: Date.now() + i, _selected: true })));
+        setParseMsg({ type: 'success', text: `Found ${data.questions.length} question${data.questions.length > 1 ? 's' : ''} — review and confirm below.` });
+      }
+    } catch (err) {
+      setParseMsg({ type: 'error', text: 'Network error: ' + err.message });
+    }
+    setParseLoading(false);
+  };
+
+  const handleParseDrop = (e) => {
+    e.preventDefault();
+    setParseDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleParseFile(file);
+  };
+
+  const saveAllParsed = async () => {
+    const toSave = parsedQuestions.filter(q => q._selected);
+    if (!toSave.length) return;
+    setAddingSaving(true);
+    let saved = 0;
+    for (const q of toSave) {
+      const newId = genQuestionId() + saved; // ensure unique
+      const payload = {
+        quiz_key: selectedQuizKey,
+        question_id: newId,
+        question: q.question,
+        options: q.options,
+        correct: q.correct,
+        explanation: q.explanation || '',
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from('quiz_overrides').upsert(payload, { onConflict: 'quiz_key,question_id' });
+      if (!error) {
+        setOverrides(prev => ({
+          ...prev,
+          [selectedQuizKey]: {
+            ...(prev[selectedQuizKey] || {}),
+            [newId]: { question: q.question, options: q.options, correct: q.correct, explanation: q.explanation || '' },
+          },
+        }));
+        saved++;
+      }
+    }
+    setAddingSaving(false);
+    setParsedQuestions([]);
+    setShowParseZone(false);
+    setParseMsg(null);
+    setQuizMsg({ type: 'success', text: `${saved} question${saved > 1 ? 's' : ''} added to the bank!` });
   };
 
   const clearMessage = () => setMessage(null);
@@ -598,15 +754,246 @@ export default function AdminPanel() {
             <div style={{ flex: 1, overflow: 'auto', padding: '28px 36px' }}>
               {selectedQuizKey && QUIZ_BANK[selectedQuizKey] && (() => {
                 const bank = QUIZ_BANK[selectedQuizKey];
-                const questions = bank.questions;
+                const baseQuestions = bank.questions;
+                const baseIds = new Set(baseQuestions.map(q => q.id));
+                // New questions added via admin (not in static bank)
+                const addedQuestions = Object.entries(overrides[selectedQuizKey] || {})
+                  .filter(([id]) => !baseIds.has(Number(id)))
+                  .map(([id, data]) => ({ id: Number(id), ...data, _isNew: true }));
+                const questions = baseQuestions;
                 return (
                   <div>
-                    <div style={{ marginBottom: 24 }}>
-                      <h2 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: '0 0 4px', fontFamily: "'Space Grotesk', sans-serif" }}>
-                        {bank.title}
-                      </h2>
-                      <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>{questions.length} questions · {Object.keys(overrides[selectedQuizKey] || {}).length} edited</p>
+                    <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                      <div>
+                        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: '0 0 4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                          {bank.title}
+                        </h2>
+                        <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>
+                          {questions.length + addedQuestions.length} questions total · {addedQuestions.length} added · {Object.keys(overrides[selectedQuizKey] || {}).filter(id => baseIds.has(Number(id))).length} edited
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                        <button
+                          onClick={() => { setShowParseZone(v => !v); setShowAddForm(false); setParsedQuestions([]); setParseMsg(null); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '8px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            background: showParseZone ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)',
+                            border: `1px solid ${showParseZone ? 'rgba(129,140,248,0.5)' : 'rgba(129,140,248,0.25)'}`,
+                            color: '#818cf8',
+                          }}
+                        >
+                          <Upload size={13} /> Parse from File
+                        </button>
+                        <button
+                          onClick={() => { setShowAddForm(v => !v); setShowParseZone(false); resetNewQForm(); setQuizMsg(null); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '8px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            background: showAddForm ? 'rgba(56,189,248,0.2)' : 'rgba(56,189,248,0.08)',
+                            border: `1px solid ${showAddForm ? 'rgba(56,189,248,0.5)' : 'rgba(56,189,248,0.25)'}`,
+                            color: '#38bdf8',
+                          }}
+                        >
+                          <Plus size={13} /> Add Question
+                        </button>
+                      </div>
                     </div>
+
+                    {/* ── PARSE FROM FILE ZONE ── */}
+                    {showParseZone && (
+                      <div style={{ marginBottom: 24, background: 'rgba(129,140,248,0.05)', border: '1px solid rgba(129,140,248,0.2)', borderRadius: 16, padding: '20px 24px' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#a78bfa', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Upload size={15} /> Parse Questions from File
+                        </div>
+                        <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px', lineHeight: 1.6 }}>
+                          Drop a screenshot, PDF, or text file containing multiple-choice questions. AI will extract them automatically.
+                          Supported: <strong style={{ color: '#94a3b8' }}>PNG, JPG, PDF, TXT</strong>
+                        </p>
+
+                        {/* Drop zone */}
+                        <div
+                          onDragOver={e => { e.preventDefault(); setParseDragging(true); }}
+                          onDragLeave={() => setParseDragging(false)}
+                          onDrop={handleParseDrop}
+                          onClick={() => document.getElementById('parse-file-input').click()}
+                          style={{
+                            border: `2px dashed ${parseDragging ? '#818cf8' : 'rgba(129,140,248,0.3)'}`,
+                            borderRadius: 12, padding: '36px 24px', textAlign: 'center', cursor: 'pointer',
+                            background: parseDragging ? 'rgba(129,140,248,0.08)' : 'rgba(255,255,255,0.02)',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <input
+                            id="parse-file-input"
+                            type="file"
+                            accept="image/*,.pdf,.txt,.text"
+                            style={{ display: 'none' }}
+                            onChange={e => { if (e.target.files[0]) handleParseFile(e.target.files[0]); e.target.value = ''; }}
+                          />
+                          {parseLoading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                              <Loader2 size={28} color="#818cf8" style={{ animation: 'spin 1s linear infinite' }} />
+                              <span style={{ fontSize: 14, color: '#818cf8', fontWeight: 600 }}>Parsing with AI…</span>
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>Drop file here or click to browse</div>
+                              <div style={{ fontSize: 12, color: '#475569' }}>Screenshot, PDF, or text file</div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Parse message */}
+                        {parseMsg && (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                            borderRadius: 9, marginTop: 12,
+                            background: parseMsg.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                            border: `1px solid ${parseMsg.type === 'error' ? 'rgba(239,68,68,0.25)' : 'rgba(34,197,94,0.25)'}`,
+                          }}>
+                            {parseMsg.type === 'error' ? <AlertCircle size={14} color="#f87171" /> : <CheckCircle size={14} color="#4ade80" />}
+                            <span style={{ fontSize: 13, color: parseMsg.type === 'error' ? '#fca5a5' : '#86efac' }}>{parseMsg.text}</span>
+                          </div>
+                        )}
+
+                        {/* Parsed question preview */}
+                        {parsedQuestions.length > 0 && (
+                          <div style={{ marginTop: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', marginBottom: 12 }}>
+                              Review & select questions to add:
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 400, overflow: 'auto', paddingRight: 4 }}>
+                              {parsedQuestions.map((q, idx) => (
+                                <div key={q._tempId} style={{
+                                  background: q._selected ? 'rgba(34,197,94,0.05)' : 'rgba(255,255,255,0.02)',
+                                  border: `1px solid ${q._selected ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                                  borderRadius: 10, padding: '14px 16px',
+                                  display: 'flex', gap: 12, alignItems: 'flex-start',
+                                }}>
+                                  <button
+                                    onClick={() => setParsedQuestions(prev => prev.map((pq, pi) => pi === idx ? { ...pq, _selected: !pq._selected } : pq))}
+                                    style={{
+                                      flexShrink: 0, width: 22, height: 22, borderRadius: 6, cursor: 'pointer', marginTop: 1,
+                                      background: q._selected ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                                      border: `2px solid ${q._selected ? '#4ade80' : 'rgba(255,255,255,0.15)'}`,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}
+                                  >
+                                    {q._selected && <CheckCircle size={12} color="#4ade80" />}
+                                  </button>
+                                  <div style={{ flex: 1 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', margin: '0 0 8px', lineHeight: 1.5 }}>{q.question}</p>
+                                    {q.options.map((opt, oi) => (
+                                      <div key={oi} style={{
+                                        fontSize: 12, padding: '4px 10px', borderRadius: 6, marginBottom: 4,
+                                        background: q.correct === oi ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
+                                        border: `1px solid ${q.correct === oi ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                                        color: q.correct === oi ? '#4ade80' : '#94a3b8',
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                      }}>
+                                        {q.correct === oi ? <CheckCircle size={10} /> : <div style={{ width: 10, height: 10, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />}
+                                        {opt}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => { setParsedQuestions([]); setParseMsg(null); }}
+                                style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}
+                              >Clear</button>
+                              <button
+                                onClick={saveAllParsed}
+                                disabled={addingSaving || !parsedQuestions.some(q => q._selected)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8,
+                                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                                  background: 'linear-gradient(135deg, #818cf8, #6366f1)', border: 'none', color: '#fff',
+                                  opacity: parsedQuestions.some(q => q._selected) ? 1 : 0.4,
+                                }}
+                              >
+                                {addingSaving ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={13} />}
+                                Add {parsedQuestions.filter(q => q._selected).length} Questions
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ── ADD QUESTION FORM ── */}
+                    {showAddForm && (
+                      <div style={{ marginBottom: 24, background: 'rgba(56,189,248,0.05)', border: '1px solid rgba(56,189,248,0.2)', borderRadius: 16, padding: '20px 24px' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Plus size={15} /> New Question
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Question</label>
+                            <textarea
+                              value={newQForm.question}
+                              onChange={e => setNewQForm(f => ({ ...f, question: e.target.value }))}
+                              placeholder="Enter the question text…"
+                              rows={3}
+                              style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 8 }}>
+                              Answer Choices <span style={{ color: '#475569', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(click circle to mark correct)</span>
+                            </label>
+                            {newQForm.options.map((opt, oi) => (
+                              <div key={oi} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                                <button
+                                  onClick={() => setNewQForm(f => ({ ...f, correct: oi }))}
+                                  style={{
+                                    flexShrink: 0, width: 22, height: 22, borderRadius: '50%', cursor: 'pointer',
+                                    background: newQForm.correct === oi ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                                    border: `2px solid ${newQForm.correct === oi ? '#4ade80' : 'rgba(255,255,255,0.15)'}`,
+                                  }}
+                                  title="Mark as correct"
+                                />
+                                <input
+                                  type="text"
+                                  value={opt}
+                                  onChange={e => setNewQForm(f => { const opts = [...f.options]; opts[oi] = e.target.value; return { ...f, options: opts }; })}
+                                  placeholder={`Answer ${String.fromCharCode(65 + oi)}`}
+                                  style={{
+                                    flex: 1, background: 'rgba(255,255,255,0.05)', border: `1px solid ${newQForm.correct === oi ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.12)'}`,
+                                    borderRadius: 8, padding: '8px 12px', color: '#f1f5f9', fontSize: 13, outline: 'none', fontFamily: 'inherit',
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Explanation (optional)</label>
+                            <textarea
+                              value={newQForm.explanation}
+                              onChange={e => setNewQForm(f => ({ ...f, explanation: e.target.value }))}
+                              placeholder="Why is the correct answer correct?"
+                              rows={2}
+                              style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                            <button onClick={() => { setShowAddForm(false); resetNewQForm(); }} style={{ padding: '9px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Cancel</button>
+                            <button
+                              onClick={handleAddSubmit}
+                              disabled={addingSaving}
+                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', border: 'none', color: '#fff' }}
+                            >
+                              {addingSaving ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={13} />}
+                              Add Question
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Global quiz message */}
                     {quizMsg && (
@@ -783,6 +1170,64 @@ export default function AdminPanel() {
                           </div>
                         );
                       })}
+
+                      {/* Added questions (not in static bank) */}
+                      {addedQuestions.length > 0 && (
+                        <div style={{ marginTop: 24 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                            Added Questions ({addedQuestions.length})
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {addedQuestions.map((q, idx) => (
+                              <div key={q.id} style={{
+                                background: 'rgba(129,140,248,0.04)',
+                                border: '1px solid rgba(129,140,248,0.2)',
+                                borderRadius: 14, overflow: 'hidden',
+                              }}>
+                                <div style={{ padding: '16px 20px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                  <span style={{
+                                    flexShrink: 0, width: 26, height: 26, borderRadius: 7,
+                                    background: 'rgba(129,140,248,0.15)', border: '1px solid rgba(129,140,248,0.3)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 11, fontWeight: 800, color: '#818cf8',
+                                  }}>+</span>
+                                  <div style={{ flex: 1 }}>
+                                    <p style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', lineHeight: 1.5 }}>{q.question}</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                      {q.options.map((opt, oi) => (
+                                        <div key={oi} style={{
+                                          display: 'flex', alignItems: 'center', gap: 8,
+                                          padding: '7px 12px', borderRadius: 8, fontSize: 13,
+                                          background: q.correct === oi ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
+                                          border: `1px solid ${q.correct === oi ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                                          color: q.correct === oi ? '#4ade80' : '#94a3b8',
+                                        }}>
+                                          {q.correct === oi ? <CheckCircle size={12} /> : <div style={{ width: 12, height: 12, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)' }} />}
+                                          {opt}
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {q.explanation && (
+                                      <p style={{ fontSize: 12, color: '#64748b', margin: '10px 0 0', fontStyle: 'italic' }}>{q.explanation}</p>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => revertQuestion(selectedQuizKey, q.id)}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                                      padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171',
+                                    }}
+                                    title="Delete this question"
+                                  >
+                                    <Trash2 size={12} /> Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
