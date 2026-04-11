@@ -812,38 +812,72 @@ export default function AdminPanel() {
                         </p>
 
                         {/* Drop zone */}
-                        <div
-                          onDragOver={e => { e.preventDefault(); setParseDragging(true); }}
-                          onDragLeave={() => setParseDragging(false)}
-                          onDrop={handleParseDrop}
-                          onClick={() => document.getElementById('parse-file-input').click()}
-                          style={{
-                            border: `2px dashed ${parseDragging ? '#818cf8' : 'rgba(129,140,248,0.3)'}`,
-                            borderRadius: 12, padding: '36px 24px', textAlign: 'center', cursor: 'pointer',
-                            background: parseDragging ? 'rgba(129,140,248,0.08)' : 'rgba(255,255,255,0.02)',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          <input
-                            id="parse-file-input"
-                            type="file"
-                            accept="image/*,.pdf,.txt,.text"
-                            style={{ display: 'none' }}
-                            onChange={e => { if (e.target.files[0]) handleParseFile(e.target.files[0]); e.target.value = ''; }}
-                          />
-                          {parseLoading ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                              <Loader2 size={28} color="#818cf8" style={{ animation: 'spin 1s linear infinite' }} />
-                              <span style={{ fontSize: 14, color: '#818cf8', fontWeight: 600 }}>Parsing with AI…</span>
+                        {/* Hidden inputs */}
+                        <input
+                          id="parse-file-input"
+                          type="file"
+                          accept="image/*,.pdf,.txt,.text"
+                          style={{ display: 'none' }}
+                          onChange={e => { if (e.target.files[0]) handleParseFile(e.target.files[0]); e.target.value = ''; }}
+                        />
+                        <input
+                          id="parse-camera-input"
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          style={{ display: 'none' }}
+                          onChange={e => { if (e.target.files[0]) handleParseFile(e.target.files[0]); e.target.value = ''; }}
+                        />
+
+                        {parseLoading ? (
+                          <div style={{
+                            border: '2px dashed rgba(129,140,248,0.3)', borderRadius: 12,
+                            padding: '40px 24px', textAlign: 'center',
+                            background: 'rgba(255,255,255,0.02)',
+                          }}>
+                            <Loader2 size={28} color="#818cf8" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 10px' }} />
+                            <div style={{ fontSize: 14, color: '#818cf8', fontWeight: 600 }}>Parsing with AI…</div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 10 }}>
+                            {/* Take Photo */}
+                            <button
+                              onClick={() => document.getElementById('parse-camera-input').click()}
+                              style={{
+                                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                gap: 10, padding: '28px 16px', borderRadius: 12, cursor: 'pointer',
+                                border: '2px dashed rgba(129,140,248,0.35)',
+                                background: 'rgba(129,140,248,0.04)',
+                                transition: 'all 0.15s',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(129,140,248,0.1)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(129,140,248,0.04)'}
+                            >
+                              <div style={{ fontSize: 30 }}>📷</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Take a Photo</div>
+                              <div style={{ fontSize: 11, color: '#475569' }}>Open camera</div>
+                            </button>
+
+                            {/* Drop / Browse */}
+                            <div
+                              onDragOver={e => { e.preventDefault(); setParseDragging(true); }}
+                              onDragLeave={() => setParseDragging(false)}
+                              onDrop={handleParseDrop}
+                              onClick={() => document.getElementById('parse-file-input').click()}
+                              style={{
+                                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                gap: 10, padding: '28px 16px', borderRadius: 12, cursor: 'pointer',
+                                border: `2px dashed ${parseDragging ? '#818cf8' : 'rgba(129,140,248,0.35)'}`,
+                                background: parseDragging ? 'rgba(129,140,248,0.1)' : 'rgba(129,140,248,0.04)',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              <div style={{ fontSize: 30 }}>📂</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Drop or Browse</div>
+                              <div style={{ fontSize: 11, color: '#475569' }}>Screenshot, PDF, or text</div>
                             </div>
-                          ) : (
-                            <div>
-                              <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>Drop file here or click to browse</div>
-                              <div style={{ fontSize: 12, color: '#475569' }}>Screenshot, PDF, or text file</div>
-                            </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
 
                         {/* Parse message */}
                         {parseMsg && (
