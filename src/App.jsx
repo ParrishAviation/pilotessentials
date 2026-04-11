@@ -116,6 +116,10 @@ function AppRoutes() {
         <Route path="/faa-written-test-cost" element={<FAAWrittenTestCost />} />
         <Route path="/faa-written-test-prep-dallas" element={<FAAWrittenTestPrepDallas />} />
         <Route path="/faa-written-test-prep-texas" element={<FAAWrittenTestPrepTexas />} />
+        <Route path="/ad/faa-exam-guarantee" element={<AdPage1 />} />
+        <Route path="/ad/we-guarantee-you-pass" element={<AdPage2 />} />
+        <Route path="/ad/other-courses-hope" element={<AdPage3 />} />
+        <Route path="/ad/faa-written-guaranteed" element={<AdPage4 />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -143,6 +147,10 @@ function AppRoutes() {
       <Route path="/faa-written-test-cost" element={<FAAWrittenTestCost />} />
       <Route path="/faa-written-test-prep-dallas" element={<FAAWrittenTestPrepDallas />} />
       <Route path="/faa-written-test-prep-texas" element={<FAAWrittenTestPrepTexas />} />
+      <Route path="/ad/faa-exam-guarantee" element={<AdPage1 />} />
+      <Route path="/ad/we-guarantee-you-pass" element={<AdPage2 />} />
+      <Route path="/ad/other-courses-hope" element={<AdPage3 />} />
+      <Route path="/ad/faa-written-guaranteed" element={<AdPage4 />} />
       {/* All other app routes */}
       <Route path="/*" element={<AuthenticatedApp />} />
     </Routes>
