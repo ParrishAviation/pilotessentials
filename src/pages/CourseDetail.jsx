@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Clock,
   BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield, BookMarked,
-  Trash2, RotateCcw
+  Trash2, RotateCcw, ExternalLink
 } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
@@ -62,12 +62,15 @@ function LessonRow({ lesson, isCompleted, isActive, isLocked, isHidden, isAdmin,
   const [hovered, setHovered] = useState(false);
   const isGuide = lesson.type === 'guide';
   const isQuiz = lesson.type === 'quiz';
+  const isInfo = lesson.type === 'info';
 
   const typeIcon = isQuiz
     ? <FileText size={13} />
     : isGuide
       ? <BookMarked size={13} />
-      : <Video size={13} />;
+      : isInfo
+        ? <ExternalLink size={13} />
+        : <Video size={13} />;
 
   return (
     <div
@@ -87,14 +90,14 @@ function LessonRow({ lesson, isCompleted, isActive, isLocked, isHidden, isAdmin,
         background: isCompleted
           ? 'rgba(34,197,94,0.2)'
           : isActive
-            ? (isGuide ? 'rgba(129,140,248,0.2)' : 'rgba(14,165,233,0.2)')
-            : (isGuide ? 'rgba(129,140,248,0.07)' : 'rgba(255,255,255,0.05)'),
+            ? (isGuide ? 'rgba(129,140,248,0.2)' : isInfo ? 'rgba(14,165,233,0.2)' : 'rgba(14,165,233,0.2)')
+            : (isGuide ? 'rgba(129,140,248,0.07)' : isInfo ? 'rgba(14,165,233,0.07)' : 'rgba(255,255,255,0.05)'),
         border: `1px solid ${isCompleted
           ? 'rgba(34,197,94,0.4)'
           : isActive
             ? (isGuide ? 'rgba(129,140,248,0.4)' : 'rgba(14,165,233,0.4)')
-            : (isGuide ? 'rgba(129,140,248,0.2)' : 'rgba(255,255,255,0.1)')}`,
-        color: isCompleted ? '#4ade80' : isActive ? (isGuide ? '#a78bfa' : '#38bdf8') : (isGuide ? '#7c6fcf' : '#64748b'),
+            : (isGuide ? 'rgba(129,140,248,0.2)' : isInfo ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.1)')}`,
+        color: isCompleted ? '#4ade80' : isActive ? (isGuide ? '#a78bfa' : '#38bdf8') : (isGuide ? '#7c6fcf' : isInfo ? '#38bdf8' : '#64748b'),
       }}>
         {isCompleted ? <CheckCircle size={13} /> : isLocked ? <Lock size={13} /> : typeIcon}
       </div>
@@ -524,6 +527,7 @@ export default function CourseDetail() {
   };
 
   const isQuizLesson = activeLesson?.type === 'quiz';
+  const isInfoLesson = activeLesson?.type === 'info';
   const isGuide = activeLesson?.type === 'guide';
 
   // For guide lessons, find the parent video lesson to get chapter context
@@ -671,6 +675,41 @@ export default function CourseDetail() {
                     >
                       🎯 Start Quiz (+{activeLesson.xp} XP)
                     </motion.button>
+                  </div>
+                ) : isInfoLesson ? (
+                  /* Info page */
+                  <div style={{ maxWidth: 580 }}>
+                    <div style={{ fontSize: 56, marginBottom: 20 }}>✈️</div>
+                    <h2 style={{ fontSize: 26, fontWeight: 800, color: '#f1f5f9', margin: '0 0 12px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                      {activeLesson.title}
+                    </h2>
+                    <p style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.75, marginBottom: 32 }}>
+                      Ready to take the real thing? Schedule your FAA Knowledge Test through PSI Exams — the official testing provider approved by the FAA.
+                    </p>
+                    <a
+                      href="https://faa.psiexams.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 10,
+                        padding: '14px 28px', borderRadius: 14,
+                        background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+                        color: '#fff', fontSize: 15, fontWeight: 700,
+                        textDecoration: 'none', marginBottom: 40,
+                        boxShadow: '0 4px 20px rgba(56,189,248,0.3)',
+                      }}
+                    >
+                      <span>📅</span> Schedule at faa.psiexams.com
+                    </a>
+                    <div style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 14, padding: '20px 24px',
+                    }}>
+                      <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+                        <strong style={{ color: '#94a3b8' }}>Tip:</strong> Most testing centers have appointments available within a few days. Bring a valid photo ID and the confirmation number from your PSI registration.
+                      </p>
+                    </div>
                   </div>
                 ) : isGuide ? (
                   /* Study Guide lesson */
