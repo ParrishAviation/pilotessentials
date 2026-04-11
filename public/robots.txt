@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Ad landing pages — do not index
+Disallow: /ad/
+
+Sitemap: https://www.mypilotessentials.com/sitemap.xml
