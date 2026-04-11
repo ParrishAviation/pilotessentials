@@ -97,13 +97,6 @@ function Navbar({ onLogin }) {
               onMouseLeave={e => e.target.style.color = '#94a3b8'}
             >{label}</button>
           ))}
-          <Link to="/blog" style={{
-            fontSize: 14, fontWeight: 600, color: '#94a3b8',
-            textDecoration: 'none', transition: 'color 0.2s',
-          }}
-            onMouseEnter={e => e.target.style.color = '#f1f5f9'}
-            onMouseLeave={e => e.target.style.color = '#94a3b8'}
-          >Blog</Link>
         </div>
 
         {/* CTA buttons */}
