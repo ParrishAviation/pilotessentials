@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Upload, CheckCircle, Trash2, Play, ChevronDown, ChevronRight,
   Video, AlertCircle, Loader2, RefreshCw, ArrowLeft, Film, FolderOpen,
-  CloudUpload, X, Eye, Link, ExternalLink
+  CloudUpload, X, Eye, Link, ExternalLink, BookOpen, Edit3, Save, Plus, RotateCcw
 } from 'lucide-react';
-import { COURSES } from '../data/courses';
+import { COURSES, QUIZ_BANK } from '../data/courses';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -192,6 +192,18 @@ export default function AdminPanel() {
   const [urlInput, setUrlInput] = useState('');
   const [savingUrl, setSavingUrl] = useState(false);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'quizzes'
+
+  // Quiz bank editor state
+  const QUIZ_KEYS = Object.keys(QUIZ_BANK).filter(k => QUIZ_BANK[k].questions);
+  const [selectedQuizKey, setSelectedQuizKey] = useState(QUIZ_KEYS[0] || '');
+  const [overrides, setOverrides] = useState({}); // { quizKey: { questionId: {...} } }
+  const [editingQ, setEditingQ] = useState(null); // { quizKey, questionId }
+  const [editForm, setEditForm] = useState(null);
+  const [quizSaving, setQuizSaving] = useState(false);
+  const [quizMsg, setQuizMsg] = useState(null);
+
   // Admin gate
   const isAdmin = ADMIN_EMAILS.includes(user?.email);
   if (!isAdmin) {
@@ -230,6 +242,81 @@ export default function AdminPanel() {
         setLoading(false);
       });
   }, [selectedCourse?.id]);
+
+  // Load quiz overrides from Supabase
+  useEffect(() => {
+    supabase.from('quiz_overrides').select('*').then(({ data }) => {
+      if (!data) return;
+      const map = {};
+      data.forEach(row => {
+        if (!map[row.quiz_key]) map[row.quiz_key] = {};
+        map[row.quiz_key][row.question_id] = {
+          question: row.question,
+          options: row.options,
+          correct: row.correct,
+          explanation: row.explanation,
+        };
+      });
+      setOverrides(map);
+    });
+  }, []);
+
+  const startEditQuestion = (quizKey, q) => {
+    setEditingQ({ quizKey, questionId: q.id });
+    const override = overrides[quizKey]?.[q.id];
+    setEditForm({
+      question: override?.question ?? q.question,
+      options: [...(override?.options ?? q.options)],
+      correct: override?.correct ?? q.correct,
+      explanation: override?.explanation ?? q.explanation ?? '',
+    });
+    setQuizMsg(null);
+  };
+
+  const cancelEdit = () => { setEditingQ(null); setEditForm(null); };
+
+  const saveQuestion = async () => {
+    if (!editingQ || !editForm) return;
+    setQuizSaving(true);
+    setQuizMsg(null);
+    const payload = {
+      quiz_key: editingQ.quizKey,
+      question_id: editingQ.questionId,
+      question: editForm.question.trim(),
+      options: editForm.options,
+      correct: editForm.correct,
+      explanation: editForm.explanation.trim(),
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from('quiz_overrides').upsert(payload, { onConflict: 'quiz_key,question_id' });
+    setQuizSaving(false);
+    if (error) {
+      setQuizMsg({ type: 'error', text: error.message });
+    } else {
+      setOverrides(prev => ({
+        ...prev,
+        [editingQ.quizKey]: { ...(prev[editingQ.quizKey] || {}), [editingQ.questionId]: { ...editForm } },
+      }));
+      setQuizMsg({ type: 'success', text: 'Question saved!' });
+      setEditingQ(null);
+      setEditForm(null);
+    }
+  };
+
+  const revertQuestion = async (quizKey, questionId) => {
+    const { error } = await supabase.from('quiz_overrides')
+      .delete().eq('quiz_key', quizKey).eq('question_id', questionId);
+    if (!error) {
+      setOverrides(prev => {
+        const next = { ...prev };
+        if (next[quizKey]) {
+          next[quizKey] = { ...next[quizKey] };
+          delete next[quizKey][questionId];
+        }
+        return next;
+      });
+    }
+  };
 
   const clearMessage = () => setMessage(null);
 
@@ -404,7 +491,29 @@ export default function AdminPanel() {
           </div>
           <div style={{ fontSize: 11, color: '#475569' }}>Video Content Manager</div>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Tab switcher */}
+          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 4 }}>
+            {[
+              { key: 'videos', label: 'Videos', icon: <Video size={13} /> },
+              { key: 'quizzes', label: 'Quiz Bank', icon: <BookOpen size={13} /> },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  background: activeTab === tab.key ? 'rgba(56,189,248,0.15)' : 'transparent',
+                  border: `1px solid ${activeTab === tab.key ? 'rgba(56,189,248,0.3)' : 'transparent'}`,
+                  color: activeTab === tab.key ? '#38bdf8' : '#64748b',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
           <div style={{
             padding: '5px 14px', borderRadius: 20,
             background: 'rgba(129,140,248,0.12)',
@@ -444,6 +553,246 @@ export default function AdminPanel() {
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* ── QUIZ BANK TAB ── */}
+        {activeTab === 'quizzes' && (
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            {/* Left: quiz key list */}
+            <div style={{
+              width: 260, flexShrink: 0,
+              background: 'rgba(255,255,255,0.02)',
+              borderRight: '1px solid rgba(255,255,255,0.06)',
+              overflow: 'auto', padding: '12px 8px',
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, padding: '4px 8px 10px' }}>
+                Quiz Banks
+              </div>
+              {QUIZ_KEYS.map(key => {
+                const hasOverrides = Object.keys(overrides[key] || {}).length > 0;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setSelectedQuizKey(key); setEditingQ(null); setEditForm(null); }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 10px', borderRadius: 8, cursor: 'pointer', marginBottom: 2,
+                      background: selectedQuizKey === key ? 'rgba(56,189,248,0.1)' : 'transparent',
+                      border: `1px solid ${selectedQuizKey === key ? 'rgba(56,189,248,0.25)' : 'transparent'}`,
+                      textAlign: 'left',
+                    }}
+                  >
+                    <BookOpen size={12} color={selectedQuizKey === key ? '#38bdf8' : '#475569'} />
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: selectedQuizKey === key ? '#38bdf8' : '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {QUIZ_BANK[key].title}
+                    </span>
+                    {hasOverrides && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>
+                        edited
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Right: question list + editor */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '28px 36px' }}>
+              {selectedQuizKey && QUIZ_BANK[selectedQuizKey] && (() => {
+                const bank = QUIZ_BANK[selectedQuizKey];
+                const questions = bank.questions;
+                return (
+                  <div>
+                    <div style={{ marginBottom: 24 }}>
+                      <h2 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: '0 0 4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                        {bank.title}
+                      </h2>
+                      <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>{questions.length} questions · {Object.keys(overrides[selectedQuizKey] || {}).length} edited</p>
+                    </div>
+
+                    {/* Global quiz message */}
+                    {quizMsg && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                        borderRadius: 10, marginBottom: 20,
+                        background: quizMsg.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                        border: `1px solid ${quizMsg.type === 'error' ? 'rgba(239,68,68,0.25)' : 'rgba(34,197,94,0.25)'}`,
+                      }}>
+                        {quizMsg.type === 'error'
+                          ? <AlertCircle size={14} color="#f87171" />
+                          : <CheckCircle size={14} color="#4ade80" />}
+                        <span style={{ fontSize: 13, color: quizMsg.type === 'error' ? '#fca5a5' : '#86efac' }}>{quizMsg.text}</span>
+                        <button onClick={() => setQuizMsg(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0 }}><X size={13} /></button>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {questions.map((q, idx) => {
+                        const override = overrides[selectedQuizKey]?.[q.id];
+                        const isEditing = editingQ?.quizKey === selectedQuizKey && editingQ?.questionId === q.id;
+                        const display = override || q;
+
+                        return (
+                          <div key={q.id} style={{
+                            background: 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${override ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                            borderRadius: 14, overflow: 'hidden',
+                          }}>
+                            {/* Question header */}
+                            <div style={{ padding: '16px 20px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                              <span style={{
+                                flexShrink: 0, width: 26, height: 26, borderRadius: 7,
+                                background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 11, fontWeight: 800, color: '#38bdf8',
+                              }}>{idx + 1}</span>
+                              <div style={{ flex: 1 }}>
+                                {isEditing ? (
+                                  /* EDIT MODE */
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                    {/* Question text */}
+                                    <div>
+                                      <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Question</label>
+                                      <textarea
+                                        value={editForm.question}
+                                        onChange={e => setEditForm(f => ({ ...f, question: e.target.value }))}
+                                        rows={3}
+                                        style={{
+                                          width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)',
+                                          borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14,
+                                          outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+                                        }}
+                                      />
+                                    </div>
+                                    {/* Options */}
+                                    <div>
+                                      <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 8 }}>Answer Choices</label>
+                                      {editForm.options.map((opt, oi) => (
+                                        <div key={oi} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                                          <button
+                                            onClick={() => setEditForm(f => ({ ...f, correct: oi }))}
+                                            style={{
+                                              flexShrink: 0, width: 22, height: 22, borderRadius: '50%', cursor: 'pointer',
+                                              background: editForm.correct === oi ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                                              border: `2px solid ${editForm.correct === oi ? '#4ade80' : 'rgba(255,255,255,0.15)'}`,
+                                            }}
+                                            title="Mark as correct"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={opt}
+                                            onChange={e => setEditForm(f => {
+                                              const opts = [...f.options];
+                                              opts[oi] = e.target.value;
+                                              return { ...f, options: opts };
+                                            })}
+                                            style={{
+                                              flex: 1, background: 'rgba(255,255,255,0.05)', border: `1px solid ${editForm.correct === oi ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.12)'}`,
+                                              borderRadius: 8, padding: '8px 12px', color: '#f1f5f9', fontSize: 13,
+                                              outline: 'none', fontFamily: 'inherit',
+                                            }}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {/* Explanation */}
+                                    <div>
+                                      <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Explanation</label>
+                                      <textarea
+                                        value={editForm.explanation}
+                                        onChange={e => setEditForm(f => ({ ...f, explanation: e.target.value }))}
+                                        rows={2}
+                                        style={{
+                                          width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)',
+                                          borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 13,
+                                          outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+                                        }}
+                                      />
+                                    </div>
+                                    {/* Save / Cancel */}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      <button
+                                        onClick={saveQuestion}
+                                        disabled={quizSaving}
+                                        style={{
+                                          display: 'flex', alignItems: 'center', gap: 6,
+                                          padding: '9px 20px', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                                          background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', border: 'none', color: '#fff',
+                                        }}
+                                      >
+                                        {quizSaving ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={13} />}
+                                        Save
+                                      </button>
+                                      <button onClick={cancelEdit} style={{
+                                        padding: '9px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
+                                      }}>Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* VIEW MODE */
+                                  <div>
+                                    <p style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', margin: '0 0 12px', lineHeight: 1.5 }}>{display.question}</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                      {display.options.map((opt, oi) => (
+                                        <div key={oi} style={{
+                                          display: 'flex', alignItems: 'center', gap: 8,
+                                          padding: '7px 12px', borderRadius: 8, fontSize: 13,
+                                          background: display.correct === oi ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
+                                          border: `1px solid ${display.correct === oi ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                                          color: display.correct === oi ? '#4ade80' : '#94a3b8',
+                                        }}>
+                                          {display.correct === oi ? <CheckCircle size={12} /> : <div style={{ width: 12, height: 12, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)' }} />}
+                                          {opt}
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {display.explanation && (
+                                      <p style={{ fontSize: 12, color: '#64748b', margin: '10px 0 0', fontStyle: 'italic' }}>{display.explanation}</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Action buttons (view mode only) */}
+                              {!isEditing && (
+                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                  <button
+                                    onClick={() => startEditQuestion(selectedQuizKey, q)}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: 5,
+                                      padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                      background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)', color: '#38bdf8',
+                                    }}
+                                  >
+                                    <Edit3 size={12} /> Edit
+                                  </button>
+                                  {override && (
+                                    <button
+                                      onClick={() => revertQuestion(selectedQuizKey, q.id)}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 5,
+                                        padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                        background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: '#fbbf24',
+                                      }}
+                                      title="Revert to original"
+                                    >
+                                      <RotateCcw size={12} /> Revert
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+        {/* ── END QUIZ BANK TAB ── */}
+
+        {activeTab === 'videos' && <>
         {/* Left: Course Tree */}
         <div style={{
           width: 300, flexShrink: 0,
@@ -763,6 +1112,7 @@ export default function AdminPanel() {
             )}
           </AnimatePresence>
         </div>
+        </>}
       </div>
 
       <style>{`

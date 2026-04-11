@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Trophy, Zap, RotateCcw, Home, ArrowRight, BookOpen, ExternalLink } from 'lucide-react';
 import { QUIZ_BANK, COURSES, FIGURE_PAGES, FAA_SUPPLEMENT_PDF } from '../data/courses';
 import { useUser } from '../context/UserContext';
+import { supabase } from '../lib/supabase';
+
+// Merge Supabase overrides on top of static quiz bank questions
+function applyOverrides(questions, overridesMap) {
+  if (!overridesMap || Object.keys(overridesMap).length === 0) return questions;
+  return questions.map(q => {
+    const ov = overridesMap[q.id];
+    if (!ov) return q;
+    return { ...q, question: ov.question, options: ov.options, correct: ov.correct, explanation: ov.explanation };
+  });
+}
 
 // Parse figure numbers from question text e.g. "Refer to figure 8" → [8]
 function parseFigures(text) {
@@ -239,8 +250,27 @@ export default function Quiz() {
 
   const isFinalTest = lessonId === 'ppl-final-test';
   const [finalTestData] = useState(() => isFinalTest ? buildFinalTest(courseId, 60) : null);
+  const [overridesMap, setOverridesMap] = useState({});
 
-  const quizData = isFinalTest ? finalTestData : QUIZ_BANK[lessonId];
+  // Load any admin overrides for this quiz key
+  useEffect(() => {
+    if (isFinalTest) return;
+    supabase
+      .from('quiz_overrides')
+      .select('question_id, question, options, correct, explanation')
+      .eq('quiz_key', lessonId)
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const map = {};
+        data.forEach(row => { map[row.question_id] = row; });
+        setOverridesMap(map);
+      });
+  }, [lessonId, isFinalTest]);
+
+  const staticQuizData = isFinalTest ? finalTestData : QUIZ_BANK[lessonId];
+  const quizData = staticQuizData
+    ? { ...staticQuizData, questions: applyOverrides(staticQuizData.questions, overridesMap) }
+    : staticQuizData;
   const course = COURSES.find(c => c.id === courseId);
   const lesson = course?.modules.flatMap(m => m.lessons).find(l => l.id === lessonId);
 
