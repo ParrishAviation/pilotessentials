@@ -38,6 +38,7 @@ export const COURSES = [
           { id: 'ppl-ch1-l7', title: '7 — Load Factor', duration: '--:--', xp: 50, type: 'video' },
           { id: 'ppl-ch1-l8', title: '8 — Velocity vs. G-loads', duration: '--:--', xp: 50, type: 'video' },
           { id: 'ppl-ch1-quiz', title: 'End of Section Quiz', duration: '10 questions', xp: 150, type: 'quiz' },
+          { id: 'ppl-ch1-schedule', title: 'Schedule Your FAA Written Exam', duration: '1 min', xp: 0, type: 'info' },
         ]
       },
       {
