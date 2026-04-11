@@ -252,7 +252,7 @@ export default function Quiz() {
   const navigate = useNavigate();
   const { user, completeLesson, saveQuizScore } = useUser();
 
-  const isFinalTest = lessonId === 'ppl-final-test';
+  const isFinalTest = lessonId === 'ppl-final-test' || lessonId === 'ppl-final-test-2';
   const [finalTestData] = useState(() => isFinalTest ? buildFinalTest(courseId, 60) : null);
   const [overridesMap, setOverridesMap] = useState({});
 

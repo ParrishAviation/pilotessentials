@@ -248,7 +248,8 @@ export const COURSES = [
         id: 'ppl-final',
         title: 'End of Course Test',
         lessons: [
-          { id: 'ppl-final-test', title: 'Private Pilot Test', duration: '60 questions', xp: 500, type: 'quiz' },
+          { id: 'ppl-final-test',   title: 'End of Course Test 1', duration: '60 questions', xp: 500, type: 'quiz' },
+          { id: 'ppl-final-test-2', title: 'End of Course Test 2', duration: '60 questions', xp: 500, type: 'quiz' },
         ]
       },
       {
