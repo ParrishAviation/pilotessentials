@@ -393,14 +393,32 @@ export default function AdminPanel() {
     setShowAddForm(false);
   };
 
-  // Read file as base64
+  // Compress + resize an image file to JPEG, max 1200px on longest side, 80% quality
+  const compressImage = (file) => new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1200;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      resolve(dataUrl.split(',')[1]); // return base64 only
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+
   const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result; // data:mime;base64,xxxxx
-      const base64 = result.split(',')[1];
-      resolve({ base64, mimeType: file.type });
-    };
+    reader.onload = () => { resolve(reader.result.split(',')[1]); };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -414,16 +432,21 @@ export default function AdminPanel() {
     const mime = file.type;
 
     if (mime.startsWith('image/')) {
-      const { base64 } = await readFileAsBase64(file);
-      body = { type: 'image', mediaType: mime, data: base64 };
+      // Compress before sending — phone photos can be 5MB+
+      const base64 = await compressImage(file).catch(() => null);
+      if (!base64) {
+        setParseMsg({ type: 'error', text: 'Could not process image.' });
+        setParseLoading(false);
+        return;
+      }
+      body = { type: 'image', mediaType: 'image/jpeg', data: base64 };
     } else if (mime === 'application/pdf') {
-      const { base64 } = await readFileAsBase64(file);
+      const base64 = await readFileAsBase64(file);
       body = { type: 'document', mediaType: 'application/pdf', data: base64 };
     } else {
-      // Plain text / docx / etc — read as text
       const text = await file.text().catch(() => null);
       if (!text) {
-        setParseMsg({ type: 'error', text: 'Could not read file as text. Use an image, PDF, or plain text file.' });
+        setParseMsg({ type: 'error', text: 'Could not read file. Use an image, PDF, or plain text file.' });
         setParseLoading(false);
         return;
       }
@@ -436,17 +459,22 @@ export default function AdminPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      // Guard against non-JSON responses (e.g. 413 Entity Too Large)
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch { data = { error: `Server error ${res.status}: ${text.slice(0, 120)}` }; }
+
       if (!res.ok || data.error) {
         setParseMsg({ type: 'error', text: data.error || 'Parsing failed' });
       } else if (!data.questions.length) {
-        setParseMsg({ type: 'error', text: 'No questions found in this file. Try a different file or add manually.' });
+        setParseMsg({ type: 'error', text: 'No questions found. Make sure the image clearly shows questions and answers.' });
       } else {
         setParsedQuestions(data.questions.map((q, i) => ({ ...q, _tempId: Date.now() + i, _selected: true })));
         setParseMsg({ type: 'success', text: `Found ${data.questions.length} question${data.questions.length > 1 ? 's' : ''} — review and confirm below.` });
       }
     } catch (err) {
-      setParseMsg({ type: 'error', text: 'Network error: ' + err.message });
+      setParseMsg({ type: 'error', text: 'Request failed. Check your connection and try again.' });
     }
     setParseLoading(false);
   };
