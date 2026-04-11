@@ -232,6 +232,10 @@ function buildFinalTest(courseId, count = 60) {
   for (const id of allLessonIds) {
     if (QUIZ_BANK[id]) pool = pool.concat(QUIZ_BANK[id].questions);
   }
+  // Also include questions from the dedicated final test bank
+  if (QUIZ_BANK['ppl-final-test-bank']?.questions?.length) {
+    pool = pool.concat(QUIZ_BANK['ppl-final-test-bank'].questions);
+  }
   // Shuffle using Fisher-Yates, then take `count`
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

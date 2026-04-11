@@ -2306,6 +2306,14 @@ for (const [key, cfg] of Object.entries(_chapterQuizMap)) {
   }
 }
 
+// Dedicated bank for questions that only appear in the End of Course Test
+// Add questions here (manually or via admin) to expand the final exam pool
+// without attaching them to any specific chapter quiz.
+QUIZ_BANK['ppl-final-test-bank'] = {
+  title: 'End of Course Test — Additional Questions',
+  questions: [],
+};
+
 export const BADGES = [
   { id: 'first-flight', icon: '🛫', title: 'First Flight', description: 'Complete your first lesson', xpRequired: 0, lessonsRequired: 1 },
   { id: 'sky-student', icon: '📚', title: 'Sky Student', description: 'Complete 10 lessons', xpRequired: 0, lessonsRequired: 10 },
