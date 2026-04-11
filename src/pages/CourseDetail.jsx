@@ -684,7 +684,7 @@ export default function CourseDetail() {
                       {activeLesson.title}
                     </h2>
                     <p style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.75, marginBottom: 32 }}>
-                      Ready to take the real thing? Schedule your FAA Knowledge Test through PSI Exams — the official testing provider approved by the FAA.
+                      Schedule Your FAA Exam 2-4 Weeks From Now. Schedule your FAA Knowledge Test through PSI Exams — the official testing provider approved by the FAA.
                     </p>
                     <a
                       href="https://faa.psiexams.com"
