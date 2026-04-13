@@ -66,7 +66,7 @@ export default function SupportTicket() {
     });
 
     if (insertErr) {
-      setError('Failed to submit ticket. Please try again.');
+      setError(`Failed to submit ticket: ${insertErr.message}`);
       setSubmitting(false);
       return;
     }
