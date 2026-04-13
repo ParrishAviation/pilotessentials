@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 // Discount codes → discount percentage (100 = free)
 const DISCOUNT_CODES = {
   'StudyyHarderOKAY!1a45$': 100,
+  'DENNY-FREE-2026': 100,
 };
 
 const PLANS = {
