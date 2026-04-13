@@ -1,10 +1,33 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { X, Send, RotateCcw, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
+import { X, Send, RotateCcw, Loader2, AlertCircle, GripHorizontal } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+
+const STORAGE_KEY = 'aichat_btn_pos';
+const DEFAULT_POS = { bottom: 28, right: 28 };
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function useDraggablePosition() {
+  const [pos, setPos] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+
+  const savePos = useCallback((newPos) => {
+    setPos(newPos);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(newPos)); } catch {}
+  }, []);
+
+  return [pos, savePos];
+}
 
 
 const SUGGESTED = [
@@ -225,12 +248,73 @@ export default function AIChat() {
   const [error, setError] = useState(null);
   const [notConfigured, setNotConfigured] = useState(false);
   const [queryCount, setQueryCount] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [btnPos, saveBtnPos] = useDraggablePosition();
   const QUERY_LIMIT = 100;
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const btnRef = useRef(null);
+  const dragState = useRef(null);
   const location = useLocation();
   const context = useCurrentContext(location);
   const { user: authUser } = useAuth();
+
+  // Drag handlers for the floating button
+  const onPointerDown = useCallback((e) => {
+    // Only drag on the button itself, not inner elements that might be clicks
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+    };
+    setDragging(false);
+  }, []);
+
+  const onPointerMove = useCallback((e) => {
+    if (!dragState.current) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    if (!dragState.current.moved && Math.hypot(dx, dy) > 5) {
+      dragState.current.moved = true;
+      setDragging(true);
+    }
+    if (dragState.current.moved && btnRef.current) {
+      const btnW = btnRef.current.offsetWidth;
+      const btnH = btnRef.current.offsetHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      // Convert current fixed position to top/left, then update
+      const rect = btnRef.current.getBoundingClientRect();
+      let newLeft = clamp(rect.left + dx, 8, vw - btnW - 8);
+      let newTop = clamp(rect.top + dy, 8, vh - btnH - 8);
+      btnRef.current.style.left = newLeft + 'px';
+      btnRef.current.style.top = newTop + 'px';
+      btnRef.current.style.right = 'auto';
+      btnRef.current.style.bottom = 'auto';
+      dragState.current.startX = e.clientX;
+      dragState.current.startY = e.clientY;
+    }
+  }, []);
+
+  const onPointerUp = useCallback((e) => {
+    if (!dragState.current) return;
+    if (dragState.current.moved && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      saveBtnPos({
+        top: clamp(rect.top, 8, vh - rect.height - 8),
+        left: clamp(rect.left, 8, vw - rect.width - 8),
+      });
+    } else {
+      // Was a click, not a drag
+      setOpen(true);
+    }
+    setDragging(false);
+    dragState.current = null;
+  }, [saveBtnPos]);
 
   useEffect(() => {
     if (open) {
@@ -311,25 +395,32 @@ export default function AIChat() {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — draggable */}
       <AnimatePresence>
         {!open && (
           <motion.button
+            ref={btnRef}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setOpen(true)}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
             style={{
-              position: 'fixed', bottom: 28, right: 28, zIndex: 1000,
+              position: 'fixed',
+              ...(btnPos
+                ? { top: btnPos.top, left: btnPos.left, bottom: 'auto', right: 'auto' }
+                : { bottom: DEFAULT_POS.bottom, right: DEFAULT_POS.right }),
+              zIndex: 1000,
               height: 52, borderRadius: 16,
               padding: '0 20px 0 16px',
               background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
-              border: 'none', cursor: 'pointer',
+              border: 'none', cursor: dragging ? 'grabbing' : 'grab',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               gap: 10,
               boxShadow: '0 4px 24px rgba(14,165,233,0.5), 0 0 0 1px rgba(14,165,233,0.3)',
+              userSelect: 'none',
+              touchAction: 'none',
             }}
           >
             <span style={{ fontSize: 20, lineHeight: 1 }}>✈️</span>
@@ -337,15 +428,20 @@ export default function AIChat() {
               fontSize: 14, fontWeight: 700, color: '#fff',
               fontFamily: "'Space Grotesk', sans-serif",
               letterSpacing: '-0.2px', whiteSpace: 'nowrap',
+              pointerEvents: 'none',
             }}>AI Instructor</span>
-            <motion.div
-              style={{
-                position: 'absolute', inset: -2, borderRadius: 18,
-                border: '2px solid rgba(14,165,233,0.4)',
-              }}
-              animate={{ scale: [1, 1.08, 1], opacity: [0.6, 0, 0.6] }}
-              transition={{ duration: 2.5, repeat: Infinity }}
-            />
+            <GripHorizontal size={13} color="rgba(255,255,255,0.45)" style={{ pointerEvents: 'none' }} />
+            {!dragging && (
+              <motion.div
+                style={{
+                  position: 'absolute', inset: -2, borderRadius: 18,
+                  border: '2px solid rgba(14,165,233,0.4)',
+                  pointerEvents: 'none',
+                }}
+                animate={{ scale: [1, 1.08, 1], opacity: [0.6, 0, 0.6] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+              />
+            )}
           </motion.button>
         )}
       </AnimatePresence>
