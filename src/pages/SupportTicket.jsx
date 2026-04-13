@@ -80,7 +80,7 @@ export default function SupportTicket() {
   };
 
   return (
-    <div style={{ padding: '32px 36px', maxWidth: 760 }}>
+    <div className="page-container" style={{ padding: '32px 36px', maxWidth: 760 }}>
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 36 }}>
         <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Help Center</span>

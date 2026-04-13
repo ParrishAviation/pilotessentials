@@ -483,6 +483,7 @@ export default function AIChat() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            className="ai-chat-panel"
             style={{
               position: 'fixed', bottom: 28, right: 28, zIndex: 1000,
               width: 400, height: 600,

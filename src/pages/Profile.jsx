@@ -62,7 +62,7 @@ export default function Profile() {
   }, [authUser]);
 
   return (
-    <div style={{ padding: '32px 36px', maxWidth: 900 }}>
+    <div className="page-container" style={{ padding: '32px 36px', maxWidth: 900 }}>
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 32 }}>
         <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>My Profile</span>
@@ -316,7 +316,7 @@ export default function Profile() {
             <div style={{ fontSize: 12, color: '#38bdf8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
               Earned ({earnedBadges.length})
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+            <div className="badge-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
               {earnedBadges.map((badge, i) => (
                 <motion.div
                   key={badge.id}
@@ -339,7 +339,7 @@ export default function Profile() {
             <div style={{ fontSize: 12, color: '#475569', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
               Locked ({lockedBadges.length})
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+            <div className="badge-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
               {lockedBadges.map((badge, i) => (
                 <div key={badge.id} className="badge-card" style={{ opacity: 0.5 }}>
                   <div style={{ fontSize: 36, filter: 'grayscale(1)' }}>{badge.icon}</div>

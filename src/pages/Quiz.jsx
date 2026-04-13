@@ -476,7 +476,7 @@ export default function Quiz() {
     const last = pastAttempts[0];
     return (
       <div style={{ minHeight: '100vh', background: '#060f1e', display: 'flex', flexDirection: 'column' }}>
-        <div style={{
+        <div className="quiz-header" style={{
           padding: '16px 40px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -607,7 +607,7 @@ export default function Quiz() {
   return (
     <div style={{ minHeight: '100vh', background: '#060f1e', display: 'flex', flexDirection: 'column' }}>
       {/* Top Bar */}
-      <div style={{
+      <div className="quiz-header" style={{
         padding: '16px 40px',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',

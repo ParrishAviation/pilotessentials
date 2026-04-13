@@ -228,7 +228,7 @@ export default function Dashboard() {
     : 0;
 
   return (
-    <div style={{ padding: '32px 36px', maxWidth: 1100 }}>
+    <div className="page-container" style={{ padding: '32px 36px', maxWidth: 1100 }}>
       {/* Upgrade Banner — only shown to free users */}
       {!tierLoading && !hasPaid && (
         <UpgradeBanner onUpgrade={(plan) => navigate(`/checkout?plan=${plan}`)} />
@@ -237,6 +237,7 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
+        className="dashboard-hero"
         style={{
           background: 'linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(139,92,246,0.1) 50%, rgba(192,132,252,0.05) 100%)',
           border: '1px solid rgba(14,165,233,0.2)',
@@ -245,6 +246,7 @@ export default function Dashboard() {
           marginBottom: 28,
           position: 'relative',
           overflow: 'hidden',
+          // mobile via className below
         }}
       >
         {/* Background glow */}
@@ -309,7 +311,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Stats Row */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
+      <div className="stats-row" style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
         <StatCard icon="⚡" value={user.xp.toLocaleString()} label="Total XP Earned" color="rgba(14,165,233,0.2)" delay={0.1} />
         <StatCard icon="📚" value={user.completedLessons.length} label="Lessons Completed" color="rgba(139,92,246,0.2)" delay={0.15} />
         <StatCard icon="🏆" value={earnedBadgeObjects.length} label="Badges Earned" color="rgba(245,158,11,0.2)" delay={0.2} />
@@ -317,7 +319,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24 }}>
+      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24 }}>
         {/* Left */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* In-progress courses */}

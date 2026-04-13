@@ -196,3 +196,85 @@ body {
   z-index: 9999;
   pointer-events: none;
 }
+
+/* ─── Mobile Optimizations (≤767px) ─────────────────────────────────────────── */
+@media (max-width: 767px) {
+
+  /* Page-level padding — all main pages use this pattern */
+  .page-container {
+    padding: 16px !important;
+  }
+
+  /* Dashboard hero banner */
+  .dashboard-hero {
+    padding: 20px 18px !important;
+  }
+
+  /* Dashboard 2-col grid → single col */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stats row — 2×2 on mobile */
+  .stats-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Course grid — single col on very small, 2 col on medium mobile */
+  .courses-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Quiz header padding */
+  .quiz-header {
+    padding: 12px 16px !important;
+  }
+
+  /* Quiz option font size */
+  .quiz-option {
+    font-size: 14px !important;
+    padding: 14px 16px !important;
+  }
+
+  /* Profile page padding */
+  .profile-container {
+    padding: 16px !important;
+  }
+
+  /* Badge grid — 3 cols on mobile */
+  .badge-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Leaderboard rows */
+  .leaderboard-row {
+    padding: 10px 12px !important;
+  }
+
+  /* AI Chat panel — full-width sheet on mobile */
+  .ai-chat-panel {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    width: auto !important;
+    max-height: 85vh !important;
+  }
+
+  /* Chatroom */
+  .chatroom-container {
+    padding: 0 !important;
+  }
+
+  /* Tables — allow horizontal scroll */
+  .table-scroll {
+    overflow-x: auto !important;
+  }
+
+  /* General heading size reduction */
+  h1 { font-size: 22px !important; }
+  h2 { font-size: 17px !important; }
+
+  /* Hide decorative glows on mobile for performance */
+  .bg-glow { display: none !important; }
+}

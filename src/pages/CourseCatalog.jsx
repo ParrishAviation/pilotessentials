@@ -267,7 +267,7 @@ export default function CourseCatalog() {
   });
 
   return (
-    <div style={{ padding: '32px 36px' }}>
+    <div className="page-container" style={{ padding: '32px 36px' }}>
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <div style={{ marginBottom: 6 }}>
@@ -326,7 +326,7 @@ export default function CourseCatalog() {
       </motion.div>
 
       {/* Course Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
+      <div className="courses-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
         {filtered.map((course) => {
           if (course.underConstruction) {
             return <UnderConstructionCard key={course.id} course={course} />;
