@@ -26,6 +26,138 @@ function useCurrentContext(location) {
   return course ? course.title : null;
 }
 
+// ─── Lightweight markdown renderer ───────────────────────────────────────────
+function MarkdownContent({ content }) {
+  const lines = content.split('\n');
+  const elements = [];
+  let i = 0;
+
+  // Inline formatting: **bold**, *italic*, `code`
+  function renderInline(text, key) {
+    const parts = [];
+    let remaining = text;
+    let idx = 0;
+    const pattern = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`)/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+      if (match[2]) parts.push(<strong key={idx++} style={{ color: '#f1f5f9', fontWeight: 700 }}>{match[2]}</strong>);
+      else if (match[3]) parts.push(<em key={idx++} style={{ color: '#94a3b8' }}>{match[3]}</em>);
+      else if (match[4]) parts.push(<code key={idx++} style={{ background: 'rgba(0,0,0,0.35)', padding: '1px 5px', borderRadius: 4, fontSize: '0.9em', fontFamily: 'monospace', color: '#38bdf8' }}>{match[4]}</code>);
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return <span key={key}>{parts}</span>;
+  }
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Horizontal rule
+    if (/^---+$/.test(line.trim())) {
+      elements.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '10px 0' }} />);
+      i++; continue;
+    }
+
+    // Heading ## or ###
+    if (/^#{1,3}\s/.test(line)) {
+      const level = line.match(/^(#{1,3})\s/)[1].length;
+      const text = line.replace(/^#{1,3}\s+/, '');
+      const sizes = { 1: 16, 2: 14, 3: 13 };
+      elements.push(
+        <div key={i} style={{ fontSize: sizes[level], fontWeight: 700, color: '#38bdf8', margin: `${level === 1 ? 14 : 10}px 0 4px` }}>
+          {renderInline(text, `h${i}`)}
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Blockquote
+    if (line.startsWith('> ')) {
+      elements.push(
+        <div key={i} style={{ borderLeft: '3px solid rgba(56,189,248,0.4)', paddingLeft: 10, margin: '6px 0', color: '#94a3b8', fontStyle: 'italic', fontSize: 12 }}>
+          {renderInline(line.slice(2), `bq${i}`)}
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Table — collect all table rows
+    if (line.startsWith('|')) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].startsWith('|')) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      const rows = tableLines.filter(l => !/^\|[\s\-|]+\|$/.test(l.trim()));
+      elements.push(
+        <div key={`tbl${i}`} style={{ overflowX: 'auto', margin: '8px 0' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <tbody>
+              {rows.map((row, ri) => {
+                const cells = row.split('|').filter((_, ci) => ci > 0 && ci < row.split('|').length - 1);
+                return (
+                  <tr key={ri} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    {cells.map((cell, ci) => (
+                      <td key={ci} style={{ padding: '5px 10px', color: ri === 0 ? '#e2e8f0' : '#94a3b8', fontWeight: ri === 0 ? 700 : 400, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        {renderInline(cell.trim(), `tc${ri}-${ci}`)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+
+    // Bullet list item
+    if (/^\s*[-*]\s/.test(line)) {
+      const indent = line.match(/^(\s*)/)[1].length;
+      const text = line.replace(/^\s*[-*]\s+/, '');
+      elements.push(
+        <div key={i} style={{ display: 'flex', gap: 7, margin: '2px 0', paddingLeft: indent * 4 }}>
+          <span style={{ color: '#38bdf8', flexShrink: 0, marginTop: 1 }}>•</span>
+          <span style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.55 }}>{renderInline(text, `li${i}`)}</span>
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Numbered list
+    if (/^\d+\.\s/.test(line)) {
+      const num = line.match(/^(\d+)\./)[1];
+      const text = line.replace(/^\d+\.\s+/, '');
+      elements.push(
+        <div key={i} style={{ display: 'flex', gap: 7, margin: '2px 0' }}>
+          <span style={{ color: '#38bdf8', flexShrink: 0, fontWeight: 700, fontSize: 12, minWidth: 16 }}>{num}.</span>
+          <span style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.55 }}>{renderInline(text, `nl${i}`)}</span>
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Empty line — small spacer
+    if (line.trim() === '') {
+      elements.push(<div key={i} style={{ height: 6 }} />);
+      i++; continue;
+    }
+
+    // Plain paragraph
+    elements.push(
+      <div key={i} style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.6, margin: '1px 0' }}>
+        {renderInline(line, `p${i}`)}
+      </div>
+    );
+    i++;
+  }
+
+  return <div style={{ wordBreak: 'break-word' }}>{elements}</div>;
+}
+
 function TypingDots() {
   return (
     <div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '4px 0' }}>
@@ -76,11 +208,10 @@ function MessageBubble({ msg }) {
         color: '#f1f5f9',
         fontSize: 13,
         lineHeight: 1.6,
-        whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
         boxShadow: isUser ? '0 4px 12px rgba(14,165,233,0.25)' : 'none',
       }}>
-        {msg.content}
+        {isUser ? msg.content : <MarkdownContent content={msg.content} />}
       </div>
     </motion.div>
   );
