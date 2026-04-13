@@ -194,7 +194,13 @@ export default function AdminPanel() {
   const [savingUrl, setSavingUrl] = useState(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'quizzes' | 'students'
+  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'quizzes' | 'students' | 'queries'
+
+  // AI Queries tab state
+  const [aiQueries, setAiQueries] = useState(null); // null = not loaded
+  const [aiQueriesLoading, setAiQueriesLoading] = useState(false);
+  const [aiQuerySearch, setAiQuerySearch] = useState('');
+  const [aiQueryExpanded, setAiQueryExpanded] = useState(null);
 
   // Students tab state
   const [students, setStudents] = useState(null); // null = not loaded yet
@@ -347,7 +353,43 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (activeTab === 'students' && students === null) loadStudents();
+    if (activeTab === 'queries' && aiQueries === null) loadAiQueries();
   }, [activeTab]);
+
+  const loadAiQueries = async () => {
+    setAiQueriesLoading(true);
+    try {
+      // Load queries joined with profile usernames
+      const { data: queries } = await supabase
+        .from('ai_query_log')
+        .select('id, user_id, query, response_preview, course_context, asked_at')
+        .order('asked_at', { ascending: false })
+        .limit(500);
+
+      if (!queries) { setAiQueries([]); return; }
+
+      // Fetch profiles for all unique user_ids
+      const userIds = [...new Set(queries.filter(q => q.user_id).map(q => q.user_id))];
+      let profileMap = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, full_name')
+          .in('id', userIds);
+        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+      }
+
+      setAiQueries(queries.map(q => ({
+        ...q,
+        profile: q.user_id ? profileMap[q.user_id] : null,
+      })));
+    } catch (err) {
+      console.error('Failed to load AI queries:', err);
+      setAiQueries([]);
+    } finally {
+      setAiQueriesLoading(false);
+    }
+  };
 
   const startEditQuestion = (quizKey, q) => {
     setEditingQ({ quizKey, questionId: q.id });
@@ -761,6 +803,7 @@ export default function AdminPanel() {
               { key: 'videos', label: 'Videos', icon: <Video size={13} /> },
               { key: 'quizzes', label: 'Quiz Bank', icon: <BookOpen size={13} /> },
               { key: 'students', label: 'Students', icon: <Users size={13} /> },
+              { key: 'queries', label: isMobile ? 'AI' : 'AI Queries', icon: <Search size={13} /> },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -1779,6 +1822,196 @@ export default function AdminPanel() {
           );
         })()}
         {/* ── END STUDENTS TAB ── */}
+
+        {/* ── AI QUERIES TAB ── */}
+        {activeTab === 'queries' && (() => {
+          const filtered = (aiQueries || []).filter(q => {
+            if (!aiQuerySearch.trim()) return true;
+            const s = aiQuerySearch.toLowerCase();
+            return (
+              q.query.toLowerCase().includes(s) ||
+              (q.profile?.full_name || '').toLowerCase().includes(s) ||
+              (q.profile?.username || '').toLowerCase().includes(s) ||
+              (q.course_context || '').toLowerCase().includes(s)
+            );
+          });
+
+          const displayName = (q) => {
+            if (!q.profile) return 'Anonymous';
+            return q.profile.full_name || q.profile.username || 'Unknown';
+          };
+          const initials = (q) => {
+            const n = displayName(q);
+            return n.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '??';
+          };
+
+          return (
+            <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '16px' : '28px 32px' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                    AI Instructor Queries
+                  </h2>
+                  <div style={{ fontSize: 13, color: '#475569', marginTop: 3 }}>
+                    {aiQueriesLoading ? 'Loading…' : `${(aiQueries || []).length} total queries logged`}
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setAiQueries(null); loadAiQueries(); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 14px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#94a3b8', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <RefreshCw size={13} /> Refresh
+                </button>
+              </div>
+
+              {/* Summary stats */}
+              {!aiQueriesLoading && aiQueries && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+                  {[
+                    { label: 'Total Queries', value: aiQueries.length, color: '#38bdf8' },
+                    { label: 'Unique Users', value: new Set(aiQueries.filter(q => q.user_id).map(q => q.user_id)).size, color: '#a78bfa' },
+                    { label: 'Today', value: aiQueries.filter(q => new Date(q.asked_at).toDateString() === new Date().toDateString()).length, color: '#4ade80' },
+                    { label: 'This Week', value: aiQueries.filter(q => (Date.now() - new Date(q.asked_at)) < 7 * 86400000).length, color: '#f59e0b' },
+                  ].map(stat => (
+                    <div key={stat.label} style={{
+                      padding: '14px 16px', borderRadius: 12,
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 6 }}>{stat.label}</div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: stat.color, fontFamily: "'Space Grotesk', sans-serif" }}>{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Search */}
+              <div style={{ position: 'relative', marginBottom: 16 }}>
+                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+                <input
+                  value={aiQuerySearch}
+                  onChange={e => setAiQuerySearch(e.target.value)}
+                  placeholder="Search queries, student names, or course context…"
+                  style={{
+                    width: '100%', padding: '9px 12px 9px 32px', borderRadius: 9,
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Query list */}
+              {aiQueriesLoading ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#475569' }}>
+                  <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
+                  <div style={{ fontSize: 14 }}>Loading query log…</div>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#475569', fontSize: 14 }}>
+                  {aiQuerySearch ? 'No queries match your search.' : 'No AI queries logged yet.'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {filtered.map((q, idx) => {
+                    const isExpanded = aiQueryExpanded === q.id;
+                    const date = new Date(q.asked_at);
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                    return (
+                      <div key={q.id} style={{
+                        borderRadius: 12,
+                        background: isExpanded ? 'rgba(56,189,248,0.04)' : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${isExpanded ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.06)'}`,
+                        overflow: 'hidden',
+                      }}>
+                        <div
+                          onClick={() => setAiQueryExpanded(isExpanded ? null : q.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '12px 16px', cursor: 'pointer',
+                          }}
+                        >
+                          {/* Avatar */}
+                          <div style={{
+                            width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                            background: q.user_id
+                              ? 'linear-gradient(135deg, #0ea5e9, #818cf8)'
+                              : 'rgba(255,255,255,0.08)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 11, fontWeight: 700, color: '#fff',
+                          }}>
+                            {initials(q)}
+                          </div>
+
+                          {/* Name */}
+                          <div style={{ width: isMobile ? 80 : 130, flexShrink: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: q.user_id ? '#94a3b8' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {displayName(q)}
+                            </div>
+                            {q.course_context && (
+                              <div style={{ fontSize: 10, color: '#38bdf8', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                📚 {q.course_context}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Query preview */}
+                          <div style={{ flex: 1, fontSize: 13, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {q.query}
+                          </div>
+
+                          {/* Date */}
+                          <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                            <div style={{ fontSize: 11, color: '#475569', whiteSpace: 'nowrap' }}>{dateStr}</div>
+                            <div style={{ fontSize: 10, color: '#334155' }}>{timeStr}</div>
+                          </div>
+
+                          {/* Expand chevron */}
+                          <ChevronRight size={14} color="#334155" style={{ flexShrink: 0, transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                        </div>
+
+                        {/* Expanded detail */}
+                        {isExpanded && (
+                          <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                              {/* Full question */}
+                              <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.15)' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 6 }}>Student Question</div>
+                                <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.6 }}>{q.query}</div>
+                              </div>
+                              {/* AI response preview */}
+                              {q.response_preview && (
+                                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                  <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 6 }}>AI Response Preview</div>
+                                  <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
+                                    {q.response_preview}{q.response_preview.length >= 300 ? '…' : ''}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Meta */}
+                              <div style={{ display: 'flex', gap: 16, fontSize: 11, color: '#334155' }}>
+                                <span><Calendar size={10} style={{ marginRight: 4, verticalAlign: 'middle' }} />{dateStr} at {timeStr}</span>
+                                {q.course_context && <span>📚 {q.course_context}</span>}
+                                {!q.user_id && <span style={{ color: '#475569' }}>Anonymous / not logged in</span>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        {/* ── END AI QUERIES TAB ── */}
 
         {activeTab === 'videos' && <>
         {/* Mobile-only overlay backdrop */}

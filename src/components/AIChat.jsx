@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { X, Send, RotateCcw, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { COURSES } from '../data/courses';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -97,6 +99,7 @@ export default function AIChat() {
   const inputRef = useRef(null);
   const location = useLocation();
   const context = useCurrentContext(location);
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     if (open) {
@@ -147,6 +150,14 @@ export default function AIChat() {
 
       const reply = data.content?.[0]?.text || 'Sorry, I could not generate a response.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+
+      // Log query to Supabase (fire-and-forget)
+      supabase.from('ai_query_log').insert({
+        user_id: authUser?.id ?? null,
+        query: content,
+        response_preview: reply.slice(0, 300),
+        course_context: context ?? null,
+      }).then(() => {});
     } catch (err) {
       if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
         setNotConfigured(true);
