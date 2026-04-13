@@ -84,6 +84,18 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   };
 
+  const resetPassword = async (email) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login?mode=reset`,
+    });
+    return { data, error };
+  };
+
+  const updatePassword = async (newPassword) => {
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    return { data, error };
+  };
+
   // hasPaid = true for full_access or cfi_mentorship
   const hasPaid = purchaseTier === 'full_access' || purchaseTier === 'cfi_mentorship';
 
@@ -91,7 +103,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       session, user,
       purchaseTier, hasPaid, tierLoading, refreshTier,
-      signUp, signIn, signOut,
+      signUp, signIn, signOut, resetPassword, updatePassword,
       loading: session === undefined,
     }}>
       {children}
