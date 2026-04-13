@@ -72,6 +72,14 @@ export function AuthProvider({ children }) {
       password,
       options: { data: { full_name: fullName, username: email.split('@')[0] } },
     });
+    if (!error && data?.user) {
+      // Fire-and-forget — never block or break the signup flow
+      fetch('/api/notify-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, fullName, userId: data.user.id }),
+      }).catch(() => {});
+    }
     return { data, error };
   };
 
