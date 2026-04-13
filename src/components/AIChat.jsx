@@ -7,7 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
 const STORAGE_KEY = 'aichat_btn_pos';
-const DEFAULT_POS = { bottom: 28, right: 28 };
+// pos shape: { edge: 'right', value: <top px> } | { edge: 'bottom', value: <right px> }
+const DEFAULT_POS = { edge: 'bottom', value: 28 };
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -17,7 +18,13 @@ function useDraggablePosition() {
   const [pos, setPos] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // migrate old format { top, left } to new edge format
+        if (parsed && !parsed.edge) return DEFAULT_POS;
+        return parsed;
+      }
+      return null;
     } catch { return null; }
   });
 
@@ -27,6 +34,16 @@ function useDraggablePosition() {
   }, []);
 
   return [pos, savePos];
+}
+
+// Convert edge-based pos to CSS style properties
+function posToStyle(pos) {
+  const p = pos || DEFAULT_POS;
+  if (p.edge === 'right') {
+    return { top: p.value, right: 16, bottom: 'auto', left: 'auto' };
+  }
+  // bottom edge: value = distance from right
+  return { bottom: 16, right: p.value, top: 'auto', left: 'auto' };
 }
 
 
@@ -259,11 +276,9 @@ export default function AIChat() {
   const context = useCurrentContext(location);
   const { user: authUser } = useAuth();
 
-  // Drag handlers for the floating button
+  // Drag handlers — constrained to right edge (up/down) or bottom edge (left/right)
   const onPointerDown = useCallback((e) => {
-    // Only drag on the button itself, not inner elements that might be clicks
     e.currentTarget.setPointerCapture(e.pointerId);
-    const rect = e.currentTarget.getBoundingClientRect();
     dragState.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -281,18 +296,35 @@ export default function AIChat() {
       setDragging(true);
     }
     if (dragState.current.moved && btnRef.current) {
-      const btnW = btnRef.current.offsetWidth;
-      const btnH = btnRef.current.offsetHeight;
+      const btn = btnRef.current;
+      const btnW = btn.offsetWidth;
+      const btnH = btn.offsetHeight;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      // Convert current fixed position to top/left, then update
-      const rect = btnRef.current.getBoundingClientRect();
-      let newLeft = clamp(rect.left + dx, 8, vw - btnW - 8);
-      let newTop = clamp(rect.top + dy, 8, vh - btnH - 8);
-      btnRef.current.style.left = newLeft + 'px';
-      btnRef.current.style.top = newTop + 'px';
-      btnRef.current.style.right = 'auto';
-      btnRef.current.style.bottom = 'auto';
+      const rect = btn.getBoundingClientRect();
+      const centerX = rect.left + btnW / 2 + dx;
+      const centerY = rect.top + btnH / 2 + dy;
+
+      // Determine closest edge: right or bottom
+      const distRight = vw - centerX;
+      const distBottom = vh - centerY;
+
+      if (distRight <= distBottom) {
+        // Snap to right edge, constrain vertically
+        const top = clamp(centerY - btnH / 2, 8, vh - btnH - 8);
+        btn.style.top = top + 'px';
+        btn.style.bottom = 'auto';
+        btn.style.right = '16px';
+        btn.style.left = 'auto';
+      } else {
+        // Snap to bottom edge, constrain horizontally
+        const right = clamp(vw - centerX - btnW / 2, 8, vw - btnW - 8);
+        btn.style.right = right + 'px';
+        btn.style.left = 'auto';
+        btn.style.bottom = '16px';
+        btn.style.top = 'auto';
+      }
+
       dragState.current.startX = e.clientX;
       dragState.current.startY = e.clientY;
     }
@@ -301,13 +333,18 @@ export default function AIChat() {
   const onPointerUp = useCallback((e) => {
     if (!dragState.current) return;
     if (dragState.current.moved && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
+      const btn = btnRef.current;
+      const rect = btn.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      saveBtnPos({
-        top: clamp(rect.top, 8, vh - rect.height - 8),
-        left: clamp(rect.left, 8, vw - rect.width - 8),
-      });
+      // Read computed position to determine which edge we're on
+      const isRightEdge = btn.style.right === '16px' && btn.style.left === 'auto';
+      if (isRightEdge) {
+        saveBtnPos({ edge: 'right', value: clamp(rect.top, 8, vh - rect.height - 8) });
+      } else {
+        const rightDist = clamp(vw - rect.right, 8, vw - rect.width - 8);
+        saveBtnPos({ edge: 'bottom', value: rightDist });
+      }
     } else {
       // Was a click, not a drag
       setOpen(true);
@@ -408,9 +445,7 @@ export default function AIChat() {
             onPointerUp={onPointerUp}
             style={{
               position: 'fixed',
-              ...(btnPos
-                ? { top: btnPos.top, left: btnPos.left, bottom: 'auto', right: 'auto' }
-                : { bottom: DEFAULT_POS.bottom, right: DEFAULT_POS.right }),
+              ...posToStyle(btnPos),
               zIndex: 1000,
               height: 52, borderRadius: 16,
               padding: '0 20px 0 16px',
