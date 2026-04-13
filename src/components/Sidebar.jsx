@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield, LifeBuoy, MessageSquare } from 'lucide-react';
+import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield, LifeBuoy, MessageSquare, X } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -16,7 +16,7 @@ const navItems = [
   { to: '/support', icon: LifeBuoy, label: 'Support' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const { user, levelPercent, xpForNextLevel } = useUser();
   const { user: authUser, signOut } = useAuth();
   const location = useLocation();
@@ -27,7 +27,7 @@ export default function Sidebar() {
     <aside style={{
       width: 240,
       minHeight: '100vh',
-      background: 'rgba(6,15,30,0.95)',
+      background: 'rgba(6,15,30,0.97)',
       borderRight: '1px solid rgba(255,255,255,0.06)',
       display: 'flex',
       flexDirection: 'column',
@@ -37,12 +37,21 @@ export default function Sidebar() {
       bottom: 0,
       zIndex: 100,
       backdropFilter: 'blur(20px)',
+      overflowY: 'auto',
     }}>
       {/* Logo */}
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 20, color: '#f1f5f9', letterSpacing: '-0.5px' }}>
           Pilot Essentials
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', flexShrink: 0 }}
+          >
+            <X size={15} />
+          </button>
+        )}
       </div>
 
       {/* User XP Card */}
