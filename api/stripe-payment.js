@@ -16,6 +16,7 @@ const DISCOUNT_CODES = {
 };
 
 const PLANS = {
+  basic_access:   { label: 'Pilot Essentials — Basic Access',   amountCents: 29900 },
   full_access:    { label: 'Pilot Essentials — Full Access',    amountCents: 39900 },
   cfi_mentorship: { label: 'Pilot Essentials — CFI Mentorship', amountCents: 99900 },
 };

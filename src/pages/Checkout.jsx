@@ -9,13 +9,13 @@ import { useAuth } from '../context/AuthContext';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const PLANS = {
-  full_access: {
-    name: 'Full Access',
-    price: '$399',
-    amountCents: 39900,
-    color: '#38bdf8',
-    gradient: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-    badge: 'MOST POPULAR',
+  basic_access: {
+    name: 'Basic Access',
+    price: '$299',
+    amountCents: 29900,
+    color: '#a78bfa',
+    gradient: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+    badge: 'SELF-STUDY',
     features: [
       'All 17 chapters + video lessons',
       'AI Flight Instructor (unlimited)',
@@ -24,6 +24,20 @@ const PLANS = {
       '60-question randomized final exam',
       'XP, badges & leaderboard',
       'ACS checkride prep guide',
+      'Lifetime access — new content free',
+    ],
+  },
+  full_access: {
+    name: 'Full Access',
+    price: '$399',
+    amountCents: 39900,
+    color: '#38bdf8',
+    gradient: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+    badge: 'MOST POPULAR',
+    features: [
+      'Everything in Basic Access',
+      '✈️ Pass Guarantee — retake covered if you don\'t pass',
+      'Priority email support',
       'Lifetime access — new content free',
     ],
   },

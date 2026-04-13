@@ -641,10 +641,11 @@ function PricingSection({ onLogin, onCheckout }) {
         </motion.div>
 
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 24, maxWidth: 1100, margin: '0 auto',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 24, maxWidth: 1160, margin: '0 auto',
         }}>
-          {/* Free tier */}
+
+          {/* Basic Access — $299 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -652,34 +653,45 @@ function PricingSection({ onLogin, onCheckout }) {
             style={{
               borderRadius: 20, padding: '36px 32px',
               background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid rgba(139,92,246,0.25)',
+              position: 'relative',
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#94a3b8', marginBottom: 12 }}>Free Preview</div>
-            <div style={{ marginBottom: 24 }}>
-              <span style={{ fontSize: 48, fontWeight: 900, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>$0</span>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#a78bfa', marginBottom: 12 }}>Basic Access</div>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 48, fontWeight: 900, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>$299</span>
             </div>
+            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>One-time payment — lifetime access</div>
             {[
-              'Chapter 1: Aerodynamics',
-              'Sample AI study guides',
-              '50 practice questions',
-              'AI Instructor (5 questions/day)',
+              'All 17 chapters + video lessons',
+              'AI Flight Instructor (unlimited)',
+              'Instant study guides — every lesson',
+              '1,000+ FAA practice questions',
+              '60-question randomized final exam',
+              'XP, badges & leaderboard',
+              'ACS checkride prep guide',
+              'New content added free',
             ].map(item => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <CheckCircle size={16} color="#4ade80" />
-                <span style={{ fontSize: 14, color: '#94a3b8' }}>{item}</span>
+                <CheckCircle size={16} color="#a78bfa" />
+                <span style={{ fontSize: 14, color: '#cbd5e1' }}>{item}</span>
               </div>
             ))}
-            <button onClick={onLogin} style={{
-              marginTop: 24, width: '100%', padding: '13px',
-              borderRadius: 10, background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#e2e8f0', fontSize: 15, fontWeight: 700,
-              cursor: 'pointer',
-            }}>Get Started Free</button>
+            <button onClick={() => onCheckout('basic_access')} style={{
+              marginTop: 24, width: '100%', padding: '15px',
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              border: 'none', color: '#fff', fontSize: 15, fontWeight: 800,
+              cursor: 'pointer', transition: 'opacity 0.2s',
+              boxShadow: '0 6px 24px rgba(124,58,237,0.3)',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
+              onMouseEnter={e => e.target.style.opacity = 0.85}
+              onMouseLeave={e => e.target.style.opacity = 1}
+            >Get Basic Access — $299 →</button>
           </motion.div>
 
-          {/* Full access — $399 */}
+          {/* Full Access — $399 with pass guarantee */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -705,14 +717,27 @@ function PricingSection({ onLogin, onCheckout }) {
             </div>
             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>One-time payment — lifetime access</div>
             {[
-              'All 17 chapters + video lessons',
-              'AI Flight Instructor (unlimited)',
-              'Instant study guides — every lesson',
-              '1,000+ FAA practice questions',
-              '60-question randomized final exam',
-              'XP, badges & leaderboard',
-              'ACS checkride prep guide',
-              'New content added free',
+              'Everything in Basic Access',
+            ].map(item => (
+              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <CheckCircle size={16} color="#64748b" />
+                <span style={{ fontSize: 14, color: '#94a3b8' }}>{item}</span>
+              </div>
+            ))}
+            {/* Pass Guarantee highlight */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12,
+              padding: '10px 14px', borderRadius: 10,
+              background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+            }}>
+              <CheckCircle size={16} color="#4ade80" style={{ flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: 14, color: '#86efac', fontWeight: 600 }}>
+                ✈️ Pass Guarantee — if you don't pass, we cover your retake fee
+              </span>
+            </div>
+            {[
+              'Priority email support',
+              'Lifetime access — new content free',
             ].map(item => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <CheckCircle size={16} color="#38bdf8" />
@@ -923,6 +948,21 @@ function BottomCTA({ onLogin, onCheckout }) {
             }}>
               Start Free
             </button>
+            <button onClick={() => onCheckout('basic_access')} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '15px 32px', borderRadius: 12,
+              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              border: 'none', color: '#fff',
+              fontSize: 15, fontWeight: 800,
+              cursor: 'pointer', transition: 'transform 0.2s',
+              boxShadow: '0 8px 30px rgba(124,58,237,0.3)',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+            >
+              Basic Access — $299
+            </button>
             <button onClick={() => onCheckout('full_access')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '15px 32px', borderRadius: 12,
@@ -936,7 +976,7 @@ function BottomCTA({ onLogin, onCheckout }) {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
             >
-              Full Access — $399 <ArrowRight size={16} />
+              Full Access + Pass Guarantee — $399 <ArrowRight size={16} />
             </button>
             <button onClick={() => onCheckout('cfi_mentorship')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,

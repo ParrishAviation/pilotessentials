@@ -114,9 +114,29 @@ export default function PaywallGate({ children }) {
         {/* Plan buttons */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: 14, marginBottom: 20,
         }}>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/checkout?plan=basic_access')}
+            style={{
+              padding: '16px 20px', borderRadius: 14,
+              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              border: 'none', color: '#fff',
+              fontWeight: 800, fontSize: 16, cursor: 'pointer',
+              boxShadow: '0 6px 24px rgba(124,58,237,0.3)',
+              fontFamily: "'Space Grotesk', sans-serif",
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 4,
+            }}
+          >
+            <span>Basic Access</span>
+            <span style={{ fontSize: 22, fontWeight: 900 }}>$299</span>
+            <span style={{ fontSize: 12, opacity: 0.85, fontWeight: 500 }}>One-time · Lifetime access</span>
+          </motion.button>
+
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -134,7 +154,7 @@ export default function PaywallGate({ children }) {
           >
             <span>Full Access</span>
             <span style={{ fontSize: 22, fontWeight: 900 }}>$399</span>
-            <span style={{ fontSize: 12, opacity: 0.85, fontWeight: 500 }}>One-time · Lifetime access</span>
+            <span style={{ fontSize: 12, opacity: 0.85, fontWeight: 500 }}>+ Pass Guarantee</span>
           </motion.button>
 
           <motion.button
@@ -154,7 +174,7 @@ export default function PaywallGate({ children }) {
           >
             <span>CFI Mentorship</span>
             <span style={{ fontSize: 22, fontWeight: 900 }}>$999</span>
-            <span style={{ fontSize: 12, opacity: 0.85, fontWeight: 500 }}>Includes live CFI + study guide</span>
+            <span style={{ fontSize: 12, opacity: 0.85, fontWeight: 500 }}>Live CFI + study guide</span>
           </motion.button>
         </div>
 
