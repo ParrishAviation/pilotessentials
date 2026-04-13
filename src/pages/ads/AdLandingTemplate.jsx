@@ -257,7 +257,7 @@ export default function AdLandingTemplate({ headline, subheadline, guaranteeCopy
           <CtaButton label="Start Now — $399" size="lg" />
           <p style={{ color: '#334155', fontSize: 13, marginTop: 16 }}>
             Questions?{' '}
-            <a href="mailto:support@pilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>support@pilotessentials.com</a>
+            <a href="mailto:support@mypilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>support@mypilotessentials.com</a>
           </p>
         </div>
       </section>
@@ -269,7 +269,7 @@ export default function AdLandingTemplate({ headline, subheadline, guaranteeCopy
           <span style={{ color: '#475569', fontWeight: 700, fontSize: 14 }}>Pilot Essentials</span>
         </div>
         <p style={{ color: '#334155', fontSize: 12 }}>
-          © {new Date().getFullYear()} Pilot Essentials · <Link to="/" style={{ color: '#475569', textDecoration: 'none' }}>Home</Link> · <a href="mailto:support@pilotessentials.com" style={{ color: '#475569', textDecoration: 'none' }}>Contact</a>
+          © {new Date().getFullYear()} Pilot Essentials · <Link to="/" style={{ color: '#475569', textDecoration: 'none' }}>Home</Link> · <a href="mailto:support@mypilotessentials.com" style={{ color: '#475569', textDecoration: 'none' }}>Contact</a>
         </p>
       </footer>
     </div>

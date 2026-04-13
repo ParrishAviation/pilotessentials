@@ -76,7 +76,7 @@ export default function ThankYou() {
 
             <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6 }}>
               Didn't get the email? Check your spam folder or contact us at{' '}
-              <a href="mailto:support@pilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>support@pilotessentials.com</a>
+              <a href="mailto:support@mypilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>support@mypilotessentials.com</a>
             </p>
           </motion.div>
         </div>
@@ -120,7 +120,7 @@ export default function ThankYou() {
           <div style={{ margin: '48px auto 0', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 28, maxWidth: 400 }}>
             <p style={{ color: '#334155', fontSize: 13, lineHeight: 1.7 }}>
               Questions? Email us at{' '}
-              <a href="mailto:support@pilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>support@pilotessentials.com</a>
+              <a href="mailto:support@mypilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>support@mypilotessentials.com</a>
             </p>
           </div>
         </motion.div>
