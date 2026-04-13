@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Shield, ShieldCheck, X, AtSign, Trash2, UserPlus, UserMinus, ChevronDown, Users, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../supabase';
+import { supabase } from '../lib/supabase';
 
 const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 const MAX_MESSAGES = 150; // keep in DOM
