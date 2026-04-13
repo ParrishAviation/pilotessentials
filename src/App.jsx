@@ -16,6 +16,7 @@ import Checkout from './pages/Checkout';
 import ThankYou from './pages/ThankYou';
 import PaywallGate from './components/PaywallGate';
 import SupportTicket from './pages/SupportTicket';
+import ChatRoom from './pages/ChatRoom';
 
 // Ad landing pages
 import AdPage1 from './pages/ads/AdPage1';
@@ -82,6 +83,7 @@ function AuthenticatedApp() {
           <Route path="/course/:courseId" element={<PaywallGate><CourseDetail /></PaywallGate>} />
           <Route path="/ai-instructor" element={<PaywallGate><AIInstructor /></PaywallGate>} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/chatroom" element={<ChatRoom />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/support" element={<SupportTicket />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
