@@ -6,8 +6,6 @@ import { COURSES } from '../data/courses';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const SUGGESTED = [
   "What are the four forces of flight?",
@@ -123,13 +121,9 @@ export default function AIChat() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/chat`, {
+      const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           context,

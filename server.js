@@ -64,5 +64,16 @@ app.post('/api/study-guide', async (req, res) => {
   }
 });
 
+// Route: POST /api/chat (Captain AI)
+app.post('/api/chat', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/chat.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`✈️  API server running on http://localhost:${PORT}`));
