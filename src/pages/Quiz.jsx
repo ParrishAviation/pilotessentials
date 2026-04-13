@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Trophy, Zap, RotateCcw, Home, ArrowRight, BookOpen, ExternalLink } from 'lucide-react';
 import { QUIZ_BANK, COURSES, FIGURE_PAGES, FAA_SUPPLEMENT_PDF } from '../data/courses';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
 // Merge Supabase overrides on top of static quiz bank questions
@@ -354,6 +355,7 @@ export default function Quiz() {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
   const { user, completeLesson, saveQuizScore } = useUser();
+  const { user: authUser } = useAuth();
 
   const isFinalTest = lessonId === 'ppl-final-test' || lessonId === 'ppl-final-test-2';
   const [finalTestData] = useState(() => isFinalTest ? buildFinalTest(courseId, 60) : null);
@@ -374,12 +376,29 @@ export default function Quiz() {
       });
   }, [lessonId, isFinalTest]);
 
+  // Load past attempts for this quiz
+  useEffect(() => {
+    if (!user || !authUser) { setPastAttempts([]); return; }
+    supabase
+      .from('quiz_attempts')
+      .select('score, total, percent, is_perfect, attempted_at')
+      .eq('quiz_id', lessonId)
+      .order('attempted_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        setPastAttempts(data || []);
+      });
+  }, [lessonId, user]);
+
   const staticQuizData = isFinalTest ? finalTestData : QUIZ_BANK[lessonId];
   const quizData = staticQuizData
     ? { ...staticQuizData, questions: applyOverrides(staticQuizData.questions, overridesMap) }
     : staticQuizData;
   const course = COURSES.find(c => c.id === courseId);
   const lesson = course?.modules.flatMap(m => m.lessons).find(l => l.id === lessonId);
+
+  const [pastAttempts, setPastAttempts] = useState(null); // null = loading, [] = none
+  const [started, setStarted] = useState(false);
 
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -397,6 +416,7 @@ export default function Quiz() {
     setSelectedAnswers({});
     setDone(false);
     setScore(0);
+    setStarted(true); // stay in quiz, skip history screen
   };
 
   if (!quizData || !lesson) {
@@ -449,6 +469,140 @@ export default function Quiz() {
 
   const isCorrect = revealed && selected === q.correct;
   const isWrong = revealed && selected !== q.correct;
+
+  // Show pre-quiz history screen if not yet started and there are past attempts
+  if (!started && pastAttempts && pastAttempts.length > 0) {
+    const best = pastAttempts.reduce((b, a) => a.percent > b.percent ? a : b, pastAttempts[0]);
+    const last = pastAttempts[0];
+    return (
+      <div style={{ minHeight: '100vh', background: '#060f1e', display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          padding: '16px 40px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'rgba(6,15,30,0.8)', backdropFilter: 'blur(12px)',
+        }}>
+          <button onClick={() => navigate(`/course/${courseId}`)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>
+            <ChevronLeft size={16} /> Back to Course
+          </button>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>{quizData.title}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{questions.length} Questions</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Zap size={14} color="#f59e0b" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b' }}>+{lesson.xp} XP</span>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ width: '100%', maxWidth: 560 }}
+          >
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+              <h2 style={{ fontSize: 24, fontWeight: 800, color: '#f1f5f9', margin: '0 0 8px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                {quizData.title}
+              </h2>
+              <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
+                You've taken this quiz {pastAttempts.length} time{pastAttempts.length !== 1 ? 's' : ''} before
+              </p>
+            </div>
+
+            {/* Best / Last stats */}
+            <div style={{ display: 'flex', gap: 14, marginBottom: 28 }}>
+              <div style={{
+                flex: 1, padding: '16px', borderRadius: 14, textAlign: 'center',
+                background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
+              }}>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>Best Score</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: '#4ade80', fontFamily: "'Space Grotesk', sans-serif" }}>{best.percent}%</div>
+                <div style={{ fontSize: 12, color: '#86efac', marginTop: 2 }}>{best.score}/{best.total} correct</div>
+              </div>
+              <div style={{
+                flex: 1, padding: '16px', borderRadius: 14, textAlign: 'center',
+                background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)',
+              }}>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>Last Score</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: '#38bdf8', fontFamily: "'Space Grotesk', sans-serif" }}>{last.percent}%</div>
+                <div style={{ fontSize: 12, color: '#7dd3fc', marginTop: 2 }}>
+                  {new Date(last.attempted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+            </div>
+
+            {/* Attempt history */}
+            <div style={{
+              borderRadius: 14, overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.08)',
+              marginBottom: 24,
+            }}>
+              <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Attempt History
+                </span>
+              </div>
+              {pastAttempts.map((a, idx) => {
+                const pct = a.percent;
+                const color = pct >= 70 ? '#4ade80' : '#f87171';
+                const bg = pct >= 70 ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)';
+                return (
+                  <div key={idx} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderBottom: idx < pastAttempts.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    background: idx === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: '#94a3b8' }}>
+                        {idx === 0 ? 'Most Recent — ' : ''}
+                        {new Date(a.attempted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>{a.score}/{a.total}</span>
+                      <div style={{
+                        padding: '3px 10px', borderRadius: 20,
+                        background: bg, color, fontSize: 13, fontWeight: 700,
+                      }}>
+                        {pct}%
+                      </div>
+                      {a.is_perfect && <span style={{ fontSize: 14 }}>🏆</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Start button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-primary"
+              onClick={() => setStarted(true)}
+              style={{
+                width: '100%', padding: '15px', borderRadius: 14,
+                fontSize: 15, fontWeight: 700, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <RotateCcw size={16} /> Retake Quiz
+            </motion.button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Auto-start if no prior attempts
+  if (!started && pastAttempts !== null && pastAttempts.length === 0) {
+    // kick off immediately — no history screen needed
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#060f1e', display: 'flex', flexDirection: 'column' }}>

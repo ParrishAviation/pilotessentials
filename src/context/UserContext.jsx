@@ -197,10 +197,15 @@ export function UserProvider({ children }) {
 
     setUserData(prev => ({ ...prev, quizScores: newScores, perfectQuizzes: newPerfect }));
 
-    await supabase.from('quiz_scores').upsert({
-      user_id: authUser.id, quiz_id: quizId, score, total, percent, is_perfect: isPerfect,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,quiz_id' });
+    await Promise.all([
+      supabase.from('quiz_scores').upsert({
+        user_id: authUser.id, quiz_id: quizId, score, total, percent, is_perfect: isPerfect,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,quiz_id' }),
+      supabase.from('quiz_attempts').insert({
+        user_id: authUser.id, quiz_id: quizId, score, total, percent, is_perfect: isPerfect,
+      }),
+    ]);
 
     if (isPerfect && !userData.perfectQuizzes.includes(quizId)) {
       await supabase.from('perfect_quizzes').upsert({ user_id: authUser.id, quiz_id: quizId });
