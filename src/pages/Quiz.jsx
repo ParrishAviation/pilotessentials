@@ -98,12 +98,13 @@ function ProgressDots({ total, current, answers }) {
   );
 }
 
-function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, lessonId, questions, selectedAnswers }) {
+function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, lessonId, questions, selectedAnswers, pastAttempts }) {
   const navigate = useNavigate();
   const pct = Math.round((score / total) * 100);
   const isPerfect = pct === 100;
   const isPassed = pct >= 70;
   const [showMissed, setShowMissed] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const missedQuestions = questions
     ? questions.map((q, i) => ({ q, i, chosen: selectedAnswers[i] }))
@@ -323,6 +324,84 @@ function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, l
           </AnimatePresence>
         </motion.div>
       )}
+
+      {/* Past Attempts History */}
+      {pastAttempts && pastAttempts.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          style={{ marginTop: 20, textAlign: 'left' }}
+        >
+          <button
+            onClick={() => setShowHistory(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', borderRadius: 14,
+              background: 'rgba(56,189,248,0.06)',
+              border: '1px solid rgba(56,189,248,0.2)',
+              color: '#38bdf8', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <RotateCcw size={15} />
+              Past Attempts ({pastAttempts.length})
+            </span>
+            <ChevronRight size={16} style={{ transform: showHistory ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div style={{
+                  borderRadius: 14, overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  marginTop: 10,
+                }}>
+                  {pastAttempts.map((a, idx) => {
+                    const apct = a.percent;
+                    const acolor = apct >= 80 ? '#4ade80' : apct >= 60 ? '#f59e0b' : '#f87171';
+                    const abg = apct >= 80 ? 'rgba(34,197,94,0.07)' : apct >= 60 ? 'rgba(245,158,11,0.07)' : 'rgba(239,68,68,0.07)';
+                    const date = new Date(a.attempted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const time = new Date(a.attempted_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    return (
+                      <div key={idx} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '12px 16px',
+                        borderBottom: idx < pastAttempts.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                        background: idx === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                      }}>
+                        <div>
+                          <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
+                            {idx === 0 ? <span style={{ color: '#38bdf8' }}>Latest — </span> : ''}{date}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{time} · {a.score}/{a.total} correct</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {a.is_perfect && <span style={{ fontSize: 14 }}>🏆</span>}
+                          <div style={{
+                            padding: '4px 12px', borderRadius: 20,
+                            background: abg, color: acolor,
+                            fontSize: 14, fontWeight: 800,
+                            fontFamily: "'Space Grotesk', sans-serif",
+                          }}>
+                            {apct}%
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -448,6 +527,18 @@ export default function Quiz() {
     setSelectedAnswers(a => ({ ...a, [currentQ]: selected }));
   };
 
+  const refreshAttempts = () => {
+    if (!authUser) return;
+    supabase
+      .from('quiz_attempts')
+      .select('score, total, percent, is_perfect, attempted_at')
+      .eq('quiz_id', lessonId)
+      .eq('user_id', authUser.id)
+      .order('attempted_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => setPastAttempts(data || []));
+  };
+
   const handleNext = () => {
     if (currentQ === questions.length - 1) {
       const finalScore = Object.values({ ...answers }).filter(Boolean).length;
@@ -460,6 +551,8 @@ export default function Quiz() {
       } else {
         saveQuizScore(lessonId, finalScore, questions.length, isPerfect);
       }
+      // Refresh history after a short delay so the new attempt is in DB
+      setTimeout(refreshAttempts, 1500);
     } else {
       setCurrentQ(q => q + 1);
       setSelected(null);
@@ -648,6 +741,7 @@ export default function Quiz() {
                   lessonId={lessonId}
                   questions={questions}
                   selectedAnswers={selectedAnswers}
+                  pastAttempts={pastAttempts || []}
                 />
               </motion.div>
             ) : (
