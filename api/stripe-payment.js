@@ -184,14 +184,17 @@ export default async function handler(req, res) {
         ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
         : null;
 
+      // Use a stable, deterministic ID so re-submitting the same code doesn't create duplicates
+      const freePaymentId = `free_${discountCode}_${resolvedUserId}`;
+
       const { error: dbError } = await supabase.from('purchases').upsert({
         user_id: resolvedUserId,
         plan,
-        stripe_payment_id: `discount_${Date.now()}_${resolvedUserId}`,
+        stripe_payment_id: freePaymentId,
         amount_cents: 0,
         status: 'completed',
         cfi_access_expires_at: cfiExpiry,
-      }, { onConflict: 'user_id' });
+      }, { onConflict: 'stripe_payment_id' });
 
       if (dbError) {
         console.error('Supabase free purchase error:', dbError);
