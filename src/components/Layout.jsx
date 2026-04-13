@@ -1,10 +1,13 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import XPNotification from './XPNotification';
 import Confetti from './Confetti';
 import AIChat from './AIChat';
 
 export default function Layout() {
+  const location = useLocation();
+  const hideAIChat = location.pathname === '/chatroom';
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#060f1e' }}>
       <Sidebar />
@@ -13,7 +16,7 @@ export default function Layout() {
       </main>
       <XPNotification />
       <Confetti />
-      <AIChat />
+      {!hideAIChat && <AIChat />}
     </div>
   );
 }
