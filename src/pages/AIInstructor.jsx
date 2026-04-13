@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, RotateCcw, Loader2, AlertCircle, BookOpen, Zap } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const QUERY_LIMIT = 100;
 
 const TOPIC_STARTERS = [
   { category: 'Aerodynamics', questions: ['What are the four forces of flight?', 'Explain angle of attack and stalls', 'What is ground effect?', 'How does load factor relate to bank angle?'] },
@@ -29,6 +30,52 @@ function TypingDots() {
   );
 }
 
+// ─── Lightweight markdown renderer ───────────────────────────────────────────
+function MarkdownContent({ content }) {
+  const lines = content.split('\n');
+  const elements = [];
+  let i = 0;
+  function renderInline(text, key) {
+    const parts = [];
+    let idx = 0;
+    const pattern = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`)/g;
+    let lastIndex = 0, match;
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+      if (match[2]) parts.push(<strong key={idx++} style={{ color: '#f1f5f9', fontWeight: 700 }}>{match[2]}</strong>);
+      else if (match[3]) parts.push(<em key={idx++} style={{ color: '#94a3b8' }}>{match[3]}</em>);
+      else if (match[4]) parts.push(<code key={idx++} style={{ background: 'rgba(0,0,0,0.35)', padding: '1px 5px', borderRadius: 4, fontSize: '0.88em', fontFamily: 'monospace', color: '#38bdf8' }}>{match[4]}</code>);
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return <span key={key}>{parts}</span>;
+  }
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^---+$/.test(line.trim())) { elements.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '10px 0' }} />); i++; continue; }
+    if (/^#{1,3}\s/.test(line)) {
+      const level = line.match(/^(#{1,3})\s/)[1].length;
+      const text = line.replace(/^#{1,3}\s+/, '');
+      elements.push(<div key={i} style={{ fontSize: level === 1 ? 16 : 14, fontWeight: 700, color: '#38bdf8', margin: `${level === 1 ? 14 : 10}px 0 4px` }}>{renderInline(text, `h${i}`)}</div>);
+      i++; continue;
+    }
+    if (line.startsWith('> ')) { elements.push(<div key={i} style={{ borderLeft: '3px solid rgba(56,189,248,0.4)', paddingLeft: 10, margin: '6px 0', color: '#94a3b8', fontStyle: 'italic', fontSize: 13 }}>{renderInline(line.slice(2), `bq${i}`)}</div>); i++; continue; }
+    if (line.startsWith('|')) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].startsWith('|')) { tableLines.push(lines[i]); i++; }
+      const rows = tableLines.filter(l => !/^\|[\s\-|]+\|$/.test(l.trim()));
+      elements.push(<div key={`tbl${i}`} style={{ overflowX: 'auto', margin: '8px 0' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}><tbody>{rows.map((row, ri) => { const cells = row.split('|').filter((_, ci) => ci > 0 && ci < row.split('|').length - 1); return <tr key={ri} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{cells.map((cell, ci) => <td key={ci} style={{ padding: '5px 10px', color: ri === 0 ? '#e2e8f0' : '#94a3b8', fontWeight: ri === 0 ? 700 : 400 }}>{renderInline(cell.trim(), `tc${ri}-${ci}`)}</td>)}</tr>; })}</tbody></table></div>);
+      continue;
+    }
+    if (/^\s*[-*]\s/.test(line)) { const indent = line.match(/^(\s*)/)[1].length; const text = line.replace(/^\s*[-*]\s+/, ''); elements.push(<div key={i} style={{ display: 'flex', gap: 8, margin: '3px 0', paddingLeft: indent * 4 }}><span style={{ color: '#38bdf8', flexShrink: 0, marginTop: 2 }}>•</span><span style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>{renderInline(text, `li${i}`)}</span></div>); i++; continue; }
+    if (/^\d+\.\s/.test(line)) { const num = line.match(/^(\d+)\./)[1]; const text = line.replace(/^\d+\.\s+/, ''); elements.push(<div key={i} style={{ display: 'flex', gap: 8, margin: '3px 0' }}><span style={{ color: '#38bdf8', flexShrink: 0, fontWeight: 700, fontSize: 13, minWidth: 18 }}>{num}.</span><span style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>{renderInline(text, `nl${i}`)}</span></div>); i++; continue; }
+    if (line.trim() === '') { elements.push(<div key={i} style={{ height: 7 }} />); i++; continue; }
+    elements.push(<div key={i} style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.65, margin: '1px 0' }}>{renderInline(line, `p${i}`)}</div>);
+    i++;
+  }
+  return <div style={{ wordBreak: 'break-word' }}>{elements}</div>;
+}
+
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user';
   return (
@@ -36,12 +83,7 @@ function MessageBubble({ msg }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22 }}
-      style={{
-        display: 'flex',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
-        marginBottom: 16,
-        gap: 10,
-      }}
+      style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 16, gap: 10 }}
     >
       {!isUser && (
         <div style={{
@@ -50,26 +92,18 @@ function MessageBubble({ msg }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 18, marginTop: 2,
           boxShadow: '0 2px 12px rgba(14,165,233,0.35)',
-        }}>
-          ✈️
-        </div>
+        }}>✈️</div>
       )}
       <div style={{
-        maxWidth: '72%',
-        padding: '12px 16px',
+        maxWidth: '72%', padding: '12px 16px',
         borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-        background: isUser
-          ? 'linear-gradient(135deg, #0ea5e9, #6366f1)'
-          : 'rgba(255,255,255,0.05)',
+        background: isUser ? 'linear-gradient(135deg, #0ea5e9, #6366f1)' : 'rgba(255,255,255,0.05)',
         border: isUser ? 'none' : '1px solid rgba(255,255,255,0.09)',
-        color: '#f1f5f9',
-        fontSize: 14,
-        lineHeight: 1.7,
-        whiteSpace: 'pre-wrap',
+        color: '#f1f5f9', fontSize: 14, lineHeight: 1.7,
         wordBreak: 'break-word',
         boxShadow: isUser ? '0 4px 16px rgba(14,165,233,0.3)' : 'none',
       }}>
-        {msg.content}
+        {isUser ? msg.content : <MarkdownContent content={msg.content} />}
       </div>
     </motion.div>
   );
@@ -80,10 +114,11 @@ export default function AIInstructor() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [notConfigured, setNotConfigured] = useState(false);
+  const [queryLimitReached, setQueryLimitReached] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -100,38 +135,41 @@ export default function AIInstructor() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/chat`, {
+      const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          userId: authUser?.id ?? null,
         }),
       });
 
       const data = await res.json();
 
       if (data.error) {
-        if (data.error.includes('ANTHROPIC_API_KEY')) {
-          setNotConfigured(true);
-        } else {
-          setError(data.error);
+        if (data.error === 'query_limit_reached') {
+          setQueryLimitReached(true);
+          setMessages(prev => prev.slice(0, -1));
+          setLoading(false);
+          return;
         }
+        setError(data.error);
         setLoading(false);
         return;
       }
 
       const reply = data.content?.[0]?.text || 'Sorry, I could not generate a response.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+
+      // Log to ai_query_log
+      supabase.from('ai_query_log').insert({
+        user_id: authUser?.id ?? null,
+        query: content,
+        response_preview: reply.slice(0, 300),
+        course_context: null,
+      }).then(() => {});
     } catch (err) {
-      if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-        setNotConfigured(true);
-      } else {
-        setError(err.message);
-      }
+      setError(err.message);
     }
     setLoading(false);
   };
@@ -267,7 +305,7 @@ export default function AIInstructor() {
           </div>
           {hasMessages && (
             <button
-              onClick={() => { setMessages([]); setError(null); setNotConfigured(false); }}
+              onClick={() => { setMessages([]); setError(null); }}
               style={{
                 marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 14px', borderRadius: 8, cursor: 'pointer',
@@ -280,29 +318,27 @@ export default function AIInstructor() {
           )}
         </div>
 
-        {/* Not configured banner */}
-        {notConfigured && (
+        {/* Query limit banner */}
+        {queryLimitReached && (
           <div style={{
             margin: '16px 32px 0',
-            padding: '14px 16px',
+            padding: '14px 18px',
             borderRadius: 12,
-            background: 'rgba(251,191,36,0.07)',
-            border: '1px solid rgba(251,191,36,0.2)',
+            background: 'rgba(245,158,11,0.07)',
+            border: '1px solid rgba(245,158,11,0.2)',
             display: 'flex', gap: 12, alignItems: 'flex-start', flexShrink: 0,
           }}>
-            <AlertCircle size={16} color="#fbbf24" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span style={{ fontSize: 22, flexShrink: 0 }}>✈️</span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fde68a', marginBottom: 4 }}>
-                Edge function not deployed yet
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fde68a', marginBottom: 4 }}>
+                You've used all {QUERY_LIMIT} AI queries
               </div>
-              <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-                To activate Captain AI: <strong>1)</strong> Deploy <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: 3 }}>supabase/functions/chat/index.ts</code> as a Supabase Edge Function.{' '}
-                <strong>2)</strong> Go to{' '}
-                <a href="https://supabase.com/dashboard/project/djesjwffqgiknfyvbrqn/settings/vault" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'underline' }}>
-                  Supabase → Edge Functions → Secrets
+              <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
+                You've reached the {QUERY_LIMIT}-query limit for Captain AI. Contact{' '}
+                <a href="mailto:support@mypilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>
+                  support@mypilotessentials.com
                 </a>{' '}
-                and add <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: 3 }}>ANTHROPIC_API_KEY</code> with your key from{' '}
-                <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'underline' }}>console.anthropic.com</a>.
+                if you need more queries.
               </div>
             </div>
           </div>
@@ -310,7 +346,7 @@ export default function AIInstructor() {
 
         {/* Messages */}
         <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
-          {!hasMessages && !notConfigured ? (
+          {!hasMessages && !queryLimitReached ? (
             <div style={{ maxWidth: 600, margin: '40px auto 0', textAlign: 'center' }}>
               <div style={{ fontSize: 56, marginBottom: 16 }}>✈️</div>
               <h2 style={{ fontSize: 26, fontWeight: 800, color: '#f1f5f9', margin: '0 0 10px', fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -417,18 +453,18 @@ export default function AIInstructor() {
                   e.target.style.height = 'auto';
                   e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                 }}
-                disabled={loading}
+                disabled={loading || queryLimitReached}
               />
               <button
                 onClick={() => sendMessage()}
                 disabled={!input.trim() || loading}
                 style={{
                   width: 38, height: 38, borderRadius: 10, border: 'none',
-                  cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                  background: input.trim() && !loading
+                  cursor: input.trim() && !loading && !queryLimitReached ? 'pointer' : 'not-allowed',
+                  background: input.trim() && !loading && !queryLimitReached
                     ? 'linear-gradient(135deg, #0ea5e9, #6366f1)'
                     : 'rgba(255,255,255,0.06)',
-                  opacity: input.trim() && !loading ? 1 : 0.4,
+                  opacity: input.trim() && !loading && !queryLimitReached ? 1 : 0.4,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, transition: 'all 0.15s',
                   boxShadow: input.trim() && !loading ? '0 4px 12px rgba(14,165,233,0.4)' : 'none',
