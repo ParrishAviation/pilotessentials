@@ -97,11 +97,17 @@ function ProgressDots({ total, current, answers }) {
   );
 }
 
-function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, lessonId }) {
+function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, lessonId, questions, selectedAnswers }) {
   const navigate = useNavigate();
   const pct = Math.round((score / total) * 100);
   const isPerfect = pct === 100;
   const isPassed = pct >= 70;
+  const [showMissed, setShowMissed] = useState(false);
+
+  const missedQuestions = questions
+    ? questions.map((q, i) => ({ q, i, chosen: selectedAnswers[i] }))
+        .filter(({ q, i, chosen }) => chosen !== undefined && chosen !== q.correct)
+    : [];
 
   const getGrade = () => {
     if (pct === 100) return { label: 'Perfect!', icon: '🏆', color: '#f59e0b' };
@@ -219,6 +225,103 @@ function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, l
           )}
         </motion.button>
       </div>
+
+      {/* Missed Questions Review */}
+      {missedQuestions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          style={{ marginTop: 28, textAlign: 'left' }}
+        >
+          <button
+            onClick={() => setShowMissed(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', borderRadius: 14,
+              background: 'rgba(239,68,68,0.07)',
+              border: '1px solid rgba(239,68,68,0.25)',
+              color: '#f87171', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <BookOpen size={16} />
+              Review {missedQuestions.length} Missed Question{missedQuestions.length !== 1 ? 's' : ''}
+            </span>
+            <ChevronRight size={16} style={{ transform: showMissed ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+
+          <AnimatePresence>
+            {showMissed && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
+                  {missedQuestions.map(({ q, i, chosen }) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: '18px 20px', borderRadius: 14,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+                        Question {i + 1}
+                      </div>
+                      <p style={{ fontSize: 14, color: '#e2e8f0', fontWeight: 600, lineHeight: 1.5, margin: '0 0 14px' }}>
+                        {q.question}
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        {/* Your answer */}
+                        <div style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 10,
+                          padding: '10px 14px', borderRadius: 10,
+                          background: 'rgba(239,68,68,0.08)',
+                          border: '1px solid rgba(239,68,68,0.25)',
+                        }}>
+                          <XCircle size={15} color="#f87171" style={{ marginTop: 1, flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: 11, color: '#f87171', fontWeight: 600, marginBottom: 2 }}>Your Answer</div>
+                            <div style={{ fontSize: 13, color: '#fca5a5' }}>{q.options[chosen]}</div>
+                          </div>
+                        </div>
+                        {/* Correct answer */}
+                        <div style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 10,
+                          padding: '10px 14px', borderRadius: 10,
+                          background: 'rgba(34,197,94,0.08)',
+                          border: '1px solid rgba(34,197,94,0.25)',
+                        }}>
+                          <CheckCircle size={15} color="#4ade80" style={{ marginTop: 1, flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 600, marginBottom: 2 }}>Correct Answer</div>
+                            <div style={{ fontSize: 13, color: '#86efac' }}>{q.options[q.correct]}</div>
+                          </div>
+                        </div>
+                        {/* Explanation */}
+                        {q.explanation && (
+                          <div style={{
+                            padding: '10px 14px', borderRadius: 10,
+                            background: 'rgba(56,189,248,0.06)',
+                            border: '1px solid rgba(56,189,248,0.15)',
+                          }}>
+                            <div style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600, marginBottom: 3 }}>Explanation</div>
+                            <div style={{ fontSize: 13, color: '#7dd3fc', lineHeight: 1.6 }}>{q.explanation}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -282,6 +385,7 @@ export default function Quiz() {
   const [selected, setSelected] = useState(null);
   const [revealed, setRevealed] = useState(false);
   const [answers, setAnswers] = useState({});
+  const [selectedAnswers, setSelectedAnswers] = useState({}); // questionIndex → chosen option index
   const [done, setDone] = useState(false);
   const [score, setScore] = useState(0);
 
@@ -290,6 +394,7 @@ export default function Quiz() {
     setSelected(null);
     setRevealed(false);
     setAnswers({});
+    setSelectedAnswers({});
     setDone(false);
     setScore(0);
   };
@@ -320,6 +425,7 @@ export default function Quiz() {
     setRevealed(true);
     const correct = selected === q.correct;
     setAnswers(a => ({ ...a, [currentQ]: correct }));
+    setSelectedAnswers(a => ({ ...a, [currentQ]: selected }));
   };
 
   const handleNext = () => {
@@ -386,6 +492,8 @@ export default function Quiz() {
                   onContinue={() => navigate(`/course/${courseId}`)}
                   courseId={courseId}
                   lessonId={lessonId}
+                  questions={questions}
+                  selectedAnswers={selectedAnswers}
                 />
               </motion.div>
             ) : (
