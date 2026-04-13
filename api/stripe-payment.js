@@ -15,6 +15,7 @@ const DISCOUNT_CODES = {
   'StudyyHarderOKAY!1a45$': 100,
   'DENNY-FREE-2026': 100,
   'HAITH-FREE-2026': 100,
+  'TITIUS-FREE-2026': 100,
 };
 
 const PLANS = {
