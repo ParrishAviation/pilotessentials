@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Upload, CheckCircle, Trash2, Play, ChevronDown, ChevronRight,
   Video, AlertCircle, Loader2, RefreshCw, ArrowLeft, Film, FolderOpen,
-  CloudUpload, X, Eye, Link, ExternalLink, BookOpen, Edit3, Save, Plus, RotateCcw
+  CloudUpload, X, Eye, Link, ExternalLink, BookOpen, Edit3, Save, Plus, RotateCcw,
+  Users, Search, TrendingUp, Award, Zap, Calendar, Mail, ChevronUp
 } from 'lucide-react';
 import { COURSES, QUIZ_BANK } from '../data/courses';
 import { useAuth } from '../context/AuthContext';
@@ -193,7 +194,14 @@ export default function AdminPanel() {
   const [savingUrl, setSavingUrl] = useState(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'quizzes'
+  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'quizzes' | 'students'
+
+  // Students tab state
+  const [students, setStudents] = useState(null); // null = not loaded yet
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [expandedStudent, setExpandedStudent] = useState(null);
+  const [studentSort, setStudentSort] = useState('xp'); // 'xp' | 'name' | 'lessons' | 'joined'
 
   // Quiz bank editor state
   const QUIZ_KEYS = Object.keys(QUIZ_BANK).filter(k => QUIZ_BANK[k].questions);
@@ -291,6 +299,55 @@ export default function AdminPanel() {
       setOverrides(map);
     });
   }, []);
+
+  // Load students when Students tab is opened
+  const loadStudents = async () => {
+    setStudentsLoading(true);
+    try {
+      const [profilesRes, enrolledRes, lessonsRes, quizScoresRes, purchasesRes] = await Promise.all([
+        supabase.from('profiles').select('id, username, full_name, xp, level, streak, created_at').order('xp', { ascending: false }),
+        supabase.from('enrolled_courses').select('user_id, course_id, enrolled_at'),
+        supabase.from('completed_lessons').select('user_id, lesson_id, completed_at'),
+        supabase.from('quiz_scores').select('user_id, quiz_id, score, total, percent, is_perfect, updated_at'),
+        supabase.from('purchases').select('user_id, plan, amount_cents, created_at'),
+      ]);
+
+      const profiles = profilesRes.data || [];
+      const enrolled = enrolledRes.data || [];
+      const lessons = lessonsRes.data || [];
+      const quizScores = quizScoresRes.data || [];
+      const purchases = purchasesRes.data || [];
+
+      // Build per-user maps
+      const enrolledMap = {};
+      enrolled.forEach(r => { if (!enrolledMap[r.user_id]) enrolledMap[r.user_id] = []; enrolledMap[r.user_id].push(r); });
+      const lessonsMap = {};
+      lessons.forEach(r => { if (!lessonsMap[r.user_id]) lessonsMap[r.user_id] = []; lessonsMap[r.user_id].push(r); });
+      const scoresMap = {};
+      quizScores.forEach(r => { if (!scoresMap[r.user_id]) scoresMap[r.user_id] = []; scoresMap[r.user_id].push(r); });
+      const purchasesMap = {};
+      purchases.forEach(r => { if (!purchasesMap[r.user_id]) purchasesMap[r.user_id] = []; purchasesMap[r.user_id].push(r); });
+
+      const enriched = profiles.map(p => ({
+        ...p,
+        enrolledCourses: enrolledMap[p.id] || [],
+        completedLessons: lessonsMap[p.id] || [],
+        quizScores: scoresMap[p.id] || [],
+        purchases: purchasesMap[p.id] || [],
+      }));
+
+      setStudents(enriched);
+    } catch (err) {
+      console.error('Failed to load students:', err);
+      setStudents([]);
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'students' && students === null) loadStudents();
+  }, [activeTab]);
 
   const startEditQuestion = (quizKey, q) => {
     setEditingQ({ quizKey, questionId: q.id });
@@ -703,6 +760,7 @@ export default function AdminPanel() {
             {[
               { key: 'videos', label: 'Videos', icon: <Video size={13} /> },
               { key: 'quizzes', label: 'Quiz Bank', icon: <BookOpen size={13} /> },
+              { key: 'students', label: 'Students', icon: <Users size={13} /> },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -1382,6 +1440,345 @@ export default function AdminPanel() {
           </div>
         )}
         {/* ── END QUIZ BANK TAB ── */}
+
+        {/* ── STUDENTS TAB ── */}
+        {activeTab === 'students' && (() => {
+          const allLessons = COURSES.flatMap(c => c.modules.flatMap(m => m.lessons));
+          const totalLessons = allLessons.length;
+
+          const filtered = (students || []).filter(s => {
+            if (!studentSearch.trim()) return true;
+            const q = studentSearch.toLowerCase();
+            return (
+              (s.full_name || '').toLowerCase().includes(q) ||
+              (s.username || '').toLowerCase().includes(q)
+            );
+          });
+
+          const sorted = [...filtered].sort((a, b) => {
+            if (studentSort === 'xp') return (b.xp || 0) - (a.xp || 0);
+            if (studentSort === 'lessons') return b.completedLessons.length - a.completedLessons.length;
+            if (studentSort === 'name') return (a.full_name || a.username || '').localeCompare(b.full_name || b.username || '');
+            if (studentSort === 'joined') return new Date(b.created_at) - new Date(a.created_at);
+            return 0;
+          });
+
+          const totalStudents = (students || []).length;
+          const activeStudents = (students || []).filter(s => s.completedLessons.length > 0).length;
+          const totalXP = (students || []).reduce((sum, s) => sum + (s.xp || 0), 0);
+          const avgProgress = totalStudents > 0
+            ? Math.round((students || []).reduce((sum, s) => sum + s.completedLessons.length, 0) / totalStudents / totalLessons * 100)
+            : 0;
+
+          const planLabel = plan => {
+            if (plan === 'cfi_mentorship') return 'CFI';
+            if (plan === 'full_access') return 'Full';
+            if (plan === 'basic_access') return 'Basic';
+            return plan;
+          };
+          const planColor = plan => {
+            if (plan === 'cfi_mentorship') return '#f59e0b';
+            if (plan === 'full_access') return '#38bdf8';
+            if (plan === 'basic_access') return '#a78bfa';
+            return '#64748b';
+          };
+
+          return (
+            <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '16px' : '28px 32px' }}>
+              {/* Header row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Students
+                  </h2>
+                  <div style={{ fontSize: 13, color: '#475569', marginTop: 3 }}>
+                    {studentsLoading ? 'Loading...' : `${totalStudents} registered · ${activeStudents} active`}
+                  </div>
+                </div>
+                <button
+                  onClick={loadStudents}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 14px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#94a3b8', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <RefreshCw size={13} /> Refresh
+                </button>
+              </div>
+
+              {/* Summary stats */}
+              {!studentsLoading && students && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+                  {[
+                    { label: 'Total Students', value: totalStudents, icon: <Users size={16} />, color: '#38bdf8' },
+                    { label: 'Active Learners', value: activeStudents, icon: <TrendingUp size={16} />, color: '#4ade80' },
+                    { label: 'Avg Progress', value: `${avgProgress}%`, icon: <Award size={16} />, color: '#a78bfa' },
+                    { label: 'Total XP Earned', value: totalXP.toLocaleString(), icon: <Zap size={16} />, color: '#f59e0b' },
+                  ].map(stat => (
+                    <div key={stat.label} style={{
+                      padding: '14px 16px', borderRadius: 12,
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8, color: stat.color }}>
+                        {stat.icon}
+                        <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.7 }}>{stat.label}</span>
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: stat.color, fontFamily: "'Space Grotesk', sans-serif" }}>{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Search + Sort */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+                  <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+                  <input
+                    value={studentSearch}
+                    onChange={e => setStudentSearch(e.target.value)}
+                    placeholder="Search by name or username…"
+                    style={{
+                      width: '100%', padding: '9px 12px 9px 32px', borderRadius: 9,
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <select
+                  value={studentSort}
+                  onChange={e => setStudentSort(e.target.value)}
+                  style={{
+                    padding: '9px 12px', borderRadius: 9,
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#94a3b8', fontSize: 13, cursor: 'pointer', outline: 'none',
+                  }}
+                >
+                  <option value="xp">Sort: Most XP</option>
+                  <option value="lessons">Sort: Most Lessons</option>
+                  <option value="name">Sort: Name A–Z</option>
+                  <option value="joined">Sort: Recently Joined</option>
+                </select>
+              </div>
+
+              {/* Student list */}
+              {studentsLoading ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#475569' }}>
+                  <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
+                  <div style={{ fontSize: 14 }}>Loading student data…</div>
+                </div>
+              ) : sorted.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#475569', fontSize: 14 }}>
+                  {studentSearch ? 'No students match your search.' : 'No students yet.'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {sorted.map((student, idx) => {
+                    const isExpanded = expandedStudent === student.id;
+                    const lessonPct = totalLessons > 0 ? Math.round(student.completedLessons.length / totalLessons * 100) : 0;
+                    const bestQuiz = student.quizScores.length > 0
+                      ? Math.max(...student.quizScores.map(q => q.percent))
+                      : null;
+                    const latestPurchase = student.purchases.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                    const displayName = student.full_name || student.username || 'Unknown';
+                    const initials = displayName.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+                    return (
+                      <div key={student.id} style={{
+                        borderRadius: 12,
+                        background: isExpanded ? 'rgba(56,189,248,0.05)' : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${isExpanded ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                        overflow: 'hidden',
+                        transition: 'border-color 0.2s',
+                      }}>
+                        {/* Row */}
+                        <div
+                          onClick={() => setExpandedStudent(isExpanded ? null : student.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 14,
+                            padding: '14px 16px', cursor: 'pointer',
+                            flexWrap: isMobile ? 'wrap' : 'nowrap',
+                          }}
+                        >
+                          {/* Avatar */}
+                          <div style={{
+                            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                            background: 'linear-gradient(135deg, #0ea5e9, #818cf8)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13, fontWeight: 700, color: '#fff',
+                          }}>{initials}</div>
+
+                          {/* Name + username */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {displayName}
+                              {latestPurchase && (
+                                <span style={{
+                                  marginLeft: 8, padding: '2px 8px', borderRadius: 20,
+                                  background: `${planColor(latestPurchase.plan)}18`,
+                                  color: planColor(latestPurchase.plan),
+                                  fontSize: 11, fontWeight: 700,
+                                }}>
+                                  {planLabel(latestPurchase.plan)}
+                                </span>
+                              )}
+                            </div>
+                            {student.username && student.full_name && (
+                              <div style={{ fontSize: 12, color: '#475569' }}>@{student.username}</div>
+                            )}
+                          </div>
+
+                          {/* Progress bar */}
+                          {!isMobile && (
+                            <div style={{ width: 120, flexShrink: 0 }}>
+                              <div style={{ fontSize: 11, color: '#475569', marginBottom: 4 }}>
+                                {student.completedLessons.length}/{totalLessons} lessons
+                              </div>
+                              <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.07)' }}>
+                                <div style={{
+                                  height: '100%', borderRadius: 3,
+                                  width: `${lessonPct}%`,
+                                  background: lessonPct >= 80 ? '#4ade80' : lessonPct >= 40 ? '#38bdf8' : '#818cf8',
+                                  transition: 'width 0.4s',
+                                }} />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* XP */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                            <Zap size={13} color="#f59e0b" />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>{(student.xp || 0).toLocaleString()}</span>
+                          </div>
+
+                          {/* Level badge */}
+                          <div style={{
+                            padding: '3px 10px', borderRadius: 20, flexShrink: 0,
+                            background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.2)',
+                            fontSize: 12, fontWeight: 700, color: '#818cf8',
+                          }}>
+                            Lv {student.level || 1}
+                          </div>
+
+                          {/* Expand chevron */}
+                          <div style={{ color: '#475569', flexShrink: 0 }}>
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </div>
+                        </div>
+
+                        {/* Expanded detail */}
+                        {isExpanded && (
+                          <div style={{ padding: '0 16px 18px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 16 }}>
+
+                              {/* Overview */}
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>Overview</div>
+                                {[
+                                  { label: 'Streak', value: `🔥 ${student.streak || 0} days`, show: true },
+                                  { label: 'Lessons Done', value: `${student.completedLessons.length} / ${totalLessons}`, show: true },
+                                  { label: 'Progress', value: `${lessonPct}%`, show: true },
+                                  { label: 'Quizzes Taken', value: student.quizScores.length, show: true },
+                                  { label: 'Best Quiz', value: bestQuiz !== null ? `${bestQuiz}%` : '—', show: true },
+                                  { label: 'Joined', value: student.created_at ? new Date(student.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—', show: true },
+                                ].map(row => (
+                                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+                                    <span style={{ fontSize: 12, color: '#475569' }}>{row.label}</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>{row.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Courses + Purchases */}
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>Plan & Courses</div>
+                                {student.purchases.length === 0 ? (
+                                  <div style={{ fontSize: 12, color: '#334155', marginBottom: 8 }}>No purchase on record</div>
+                                ) : student.purchases.map((p, i) => (
+                                  <div key={i} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    marginBottom: 7,
+                                  }}>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: planColor(p.plan), padding: '2px 8px', borderRadius: 20, background: `${planColor(p.plan)}15` }}>
+                                      {planLabel(p.plan)}
+                                    </span>
+                                    <span style={{ fontSize: 11, color: '#475569' }}>
+                                      ${(p.amount_cents / 100).toFixed(0)} · {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                    </span>
+                                  </div>
+                                ))}
+                                <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>Enrolled Courses</div>
+                                {student.enrolledCourses.length === 0 ? (
+                                  <div style={{ fontSize: 12, color: '#334155' }}>Not enrolled in any course</div>
+                                ) : student.enrolledCourses.map(e => {
+                                  const course = COURSES.find(c => c.id === e.course_id);
+                                  const courseLessons = course ? course.modules.flatMap(m => m.lessons) : [];
+                                  const doneInCourse = student.completedLessons.filter(l =>
+                                    courseLessons.some(cl => cl.id === l.lesson_id)
+                                  ).length;
+                                  const coursePct = courseLessons.length > 0 ? Math.round(doneInCourse / courseLessons.length * 100) : 0;
+                                  return (
+                                    <div key={e.course_id} style={{ marginBottom: 10 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{course?.title || e.course_id}</span>
+                                        <span style={{ fontSize: 12, color: '#64748b' }}>{doneInCourse}/{courseLessons.length}</span>
+                                      </div>
+                                      <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.07)' }}>
+                                        <div style={{
+                                          height: '100%', borderRadius: 3, width: `${coursePct}%`,
+                                          background: coursePct >= 80 ? '#4ade80' : coursePct >= 40 ? '#38bdf8' : '#818cf8',
+                                        }} />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Quiz scores */}
+                              {student.quizScores.length > 0 && (
+                                <div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+                                    Quiz Scores ({student.quizScores.length})
+                                  </div>
+                                  <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                    {student.quizScores
+                                      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+                                      .map((q, i) => {
+                                        const color = q.percent >= 70 ? '#4ade80' : '#f87171';
+                                        return (
+                                          <div key={i} style={{
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            padding: '6px 10px', borderRadius: 7,
+                                            background: 'rgba(255,255,255,0.03)',
+                                          }}>
+                                            <span style={{ fontSize: 11, color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {q.quiz_id}
+                                            </span>
+                                            <span style={{
+                                              fontSize: 12, fontWeight: 700, color,
+                                              marginLeft: 8, flexShrink: 0,
+                                            }}>
+                                              {q.percent}% {q.is_perfect ? '🏆' : ''}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        {/* ── END STUDENTS TAB ── */}
 
         {activeTab === 'videos' && <>
         {/* Mobile-only overlay backdrop */}
