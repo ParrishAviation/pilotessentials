@@ -111,16 +111,6 @@ function Navbar({ onLogin }) {
             onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; e.target.style.borderColor = 'rgba(255,255,255,0.2)'; }}
             onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.06)'; e.target.style.borderColor = 'rgba(255,255,255,0.12)'; }}
           >Log In</button>
-          <button onClick={onLogin} style={{
-            padding: '9px 22px', borderRadius: 9,
-            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-            border: 'none', color: '#fff', fontSize: 14, fontWeight: 700,
-            cursor: 'pointer', transition: 'opacity 0.2s',
-            boxShadow: '0 4px 20px rgba(14,165,233,0.3)',
-          }}
-            onMouseEnter={e => e.target.style.opacity = 0.85}
-            onMouseLeave={e => e.target.style.opacity = 1}
-          >Start Free →</button>
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -162,7 +152,7 @@ function Navbar({ onLogin }) {
               borderRadius: 10, background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
               border: 'none', color: '#fff', fontSize: 15, fontWeight: 700,
               cursor: 'pointer',
-            }}>Get Started Free</button>
+            }}>Log In</button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -935,19 +925,9 @@ function BottomCTA({ onLogin, onCheckout }) {
             Your Private Pilot Certificate Starts Here
           </h2>
           <p style={{ fontSize: 17, color: '#64748b', marginBottom: 40, lineHeight: 1.6 }}>
-            Join students who passed the FAA written with Pilot Essentials. Start free, or go all-in with full access or CFI mentorship.
+            Join students who passed the FAA written with Pilot Essentials. Choose a plan and get lifetime access today.
           </p>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
-            <button onClick={onLogin} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '15px 32px', borderRadius: 12,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#e2e8f0', fontSize: 15, fontWeight: 700,
-              cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
-            }}>
-              Start Free
-            </button>
             <button onClick={() => onCheckout('basic_access')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '15px 32px', borderRadius: 12,
