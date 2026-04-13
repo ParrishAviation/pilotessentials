@@ -9,13 +9,17 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Detect if we're in password-reset mode (user clicked email link)
+  // Detect if we're in password-reset or post-purchase setup mode
   const [mode, setMode] = useState(() => {
     if (searchParams.get('mode') === 'reset') return 'reset';
+    if (searchParams.get('mode') === 'setup') return 'setup';
     return 'signin';
   });
 
-  const [email, setEmail] = useState('');
+  const setupEmail = searchParams.get('email') || '';
+  const setupPlan  = searchParams.get('plan')  || '';
+
+  const [email, setEmail] = useState(setupEmail);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -64,6 +68,30 @@ export default function Auth() {
         if (error) throw error;
         setSuccess('Password updated successfully!');
         setTimeout(() => { switchMode('signin'); navigate('/login'); }, 2000);
+
+      } else if (mode === 'setup') {
+        if (!fullName.trim()) { setError('Please enter your full name.'); setLoading(false); return; }
+        if (password.length < 6) { setError('Password must be at least 6 characters.'); setLoading(false); return; }
+        if (password !== confirmPassword) { setError('Passwords do not match.'); setLoading(false); return; }
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          // If user already exists (invited by Supabase), try signing them in instead
+          if (error.message?.toLowerCase().includes('already registered') || error.message?.toLowerCase().includes('already been registered')) {
+            const { error: signInErr } = await signIn(email, password);
+            if (signInErr) throw signInErr;
+            navigate('/app', { replace: true });
+            return;
+          }
+          throw error;
+        }
+        // Auto sign in after setup
+        const { error: signInErr } = await signIn(email, password);
+        if (!signInErr) {
+          navigate('/app', { replace: true });
+        } else {
+          setSuccess('Account created! Please sign in to continue.');
+          switchMode('signin');
+        }
       }
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -176,7 +204,7 @@ export default function Auth() {
         }}>
 
           {/* Tab switcher — only for signin/signup */}
-          {(mode === 'signin' || mode === 'signup') && (
+          {(mode === 'signin' || mode === 'signup') && !setupEmail && (
             <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 4, marginBottom: 32 }}>
               {['signin', 'signup'].map(m => (
                 <button key={m} onClick={() => switchMode(m)} style={{
@@ -193,7 +221,7 @@ export default function Auth() {
             </div>
           )}
 
-          {/* Back link for forgot/reset */}
+          {/* Back link for forgot/reset (not setup) */}
           {(mode === 'forgot' || mode === 'reset') && (
             <button onClick={() => switchMode('signin')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -217,23 +245,38 @@ export default function Auth() {
               transition={{ duration: 0.2 }}
             >
               {/* Heading */}
+              {/* Post-purchase success banner */}
+              {mode === 'setup' && (
+                <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, padding: '14px 16px', marginBottom: 24, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <CheckCircle size={16} color="#4ade80" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#4ade80', marginBottom: 2 }}>
+                      {setupPlan === 'cfi_mentorship' ? 'CFI Mentorship' : setupPlan === 'basic_access' ? 'Basic Access' : 'Full Access'} unlocked!
+                    </div>
+                    <div style={{ fontSize: 12, color: '#86efac', lineHeight: 1.5 }}>Create your account below to start learning.</div>
+                  </div>
+                </div>
+              )}
+
               <h3 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: '0 0 6px', fontFamily: "'Space Grotesk', sans-serif" }}>
                 {mode === 'signin' && 'Welcome back!'}
                 {mode === 'signup' && 'Join Pilot Essentials'}
                 {mode === 'forgot' && 'Reset your password'}
                 {mode === 'reset' && 'Set new password'}
+                {mode === 'setup' && 'Create your account'}
               </h3>
               <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 28px' }}>
                 {mode === 'signin' && 'Sign in to continue your training.'}
                 {mode === 'signup' && 'Create your free pilot training account.'}
                 {mode === 'forgot' && "Enter your email and we'll send you a reset link."}
                 {mode === 'reset' && 'Choose a strong new password for your account.'}
+                {mode === 'setup' && 'Set your name and password to access your courses.'}
               </p>
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                {/* Full name — signup only */}
-                {mode === 'signup' && (
+                {/* Full name — signup + setup */}
+                {(mode === 'signup' || mode === 'setup') && (
                   <div>
                     <label style={labelStyle}>Full Name</label>
                     <div style={{ position: 'relative' }}>
@@ -254,8 +297,13 @@ export default function Auth() {
                     <div style={{ position: 'relative' }}>
                       <Mail size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
                       <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                        placeholder="you@example.com" required style={inputStyle}
-                        onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.5)'}
+                        placeholder="you@example.com" required
+                        readOnly={mode === 'setup' && !!setupEmail}
+                        style={{
+                          ...inputStyle,
+                          ...(mode === 'setup' && setupEmail ? { opacity: 0.6, cursor: 'not-allowed', background: 'rgba(255,255,255,0.02)' } : {}),
+                        }}
+                        onFocus={e => { if (mode !== 'setup') e.target.style.borderColor = 'rgba(56,189,248,0.5)'; }}
                         onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                       />
                     </div>
@@ -286,8 +334,8 @@ export default function Auth() {
                   </div>
                 )}
 
-                {/* Confirm password — reset mode only */}
-                {mode === 'reset' && (
+                {/* Confirm password — reset + setup modes */}
+                {(mode === 'reset' || mode === 'setup') && (
                   <div>
                     <label style={labelStyle}>Confirm New Password</label>
                     <div style={{ position: 'relative' }}>
@@ -307,7 +355,7 @@ export default function Auth() {
                   </div>
                 )}
 
-                {/* Forgot password link — sign in only */}
+                {/* Forgot password link — sign in only (not setup) */}
                 {mode === 'signin' && (
                   <div style={{ textAlign: 'right', marginTop: -8 }}>
                     <button type="button" onClick={() => switchMode('forgot')} style={{
@@ -358,23 +406,24 @@ export default function Auth() {
                     {mode === 'signin' && 'Signing in...'}
                     {mode === 'signup' && 'Creating account...'}
                     {mode === 'forgot' && 'Sending link...'}
-                    {mode === 'reset' && 'Updating password...'}</>
+                    {mode === 'reset' && 'Updating password...'}
+                    {mode === 'setup' && 'Creating account...'}</>
                   ) : (
                     <>
                       {mode === 'signin' && '✈️ Sign In'}
                       {mode === 'signup' && '🚀 Create Account'}
                       {mode === 'forgot' && '📧 Send Reset Link'}
                       {mode === 'reset' && '🔒 Set New Password'}
+                      {mode === 'setup' && '🚀 Create Account & Start Learning'}
                     </>
                   )}
                 </motion.button>
               </form>
 
               <p style={{ fontSize: 12, color: '#334155', textAlign: 'center', marginTop: 20, lineHeight: 1.6 }}>
-                {mode === 'reset'
-                  ? 'Your password will be updated and you will be signed in.'
-                  : 'By continuing you agree to our Terms of Service and Privacy Policy.'
-                }
+                {mode === 'reset' && 'Your password will be updated and you will be signed in.'}
+                {mode === 'setup' && 'You will be signed in automatically after creating your account.'}
+                {(mode === 'signin' || mode === 'signup' || mode === 'forgot') && 'By continuing you agree to our Terms of Service and Privacy Policy.'}
               </p>
             </motion.div>
           </AnimatePresence>
