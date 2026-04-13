@@ -161,13 +161,7 @@ export default function AIInstructor() {
       const reply = data.content?.[0]?.text || 'Sorry, I could not generate a response.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
 
-      // Log to ai_query_log
-      supabase.from('ai_query_log').insert({
-        user_id: authUser?.id ?? null,
-        query: content,
-        response_preview: reply.slice(0, 300),
-        course_context: null,
-      }).then(() => {});
+      // Query is logged server-side in api/chat.js
     } catch (err) {
       setError(err.message);
     }

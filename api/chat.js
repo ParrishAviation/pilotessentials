@@ -95,6 +95,27 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ error: data.error?.message || 'Anthropic API error' });
     }
 
+    // ── Log query server-side using service role key (bypasses RLS) ──
+    if (userId && supabaseUrl && supabaseKey) {
+      const query = messages[messages.length - 1]?.content ?? '';
+      const responsePreview = data.content?.[0]?.text?.slice(0, 300) ?? '';
+      fetch(`${supabaseUrl}/rest/v1/ai_query_log`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          query,
+          response_preview: responsePreview,
+          course_context: context ?? null,
+        }),
+      }).catch(() => {}); // fire-and-forget
+    }
+
     return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message });
