@@ -306,7 +306,7 @@ function Hero({ onLogin }) {
               { icon: '🎓', text: '17 structured chapters' },
               { icon: '🤖', text: 'AI Flight Instructor included' },
               { icon: '📝', text: '1,000+ FAA practice questions' },
-              { icon: '✅', text: 'ACS checkride aligned' },
+              { icon: '💰', text: 'Plans starting at $299' },
             ].map(({ icon, text }) => (
               <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 16 }}>{icon}</span>
@@ -626,7 +626,7 @@ function PricingSection({ onLogin, onCheckout }) {
             Invest in Your Wings
           </h2>
           <p style={{ fontSize: 16, color: '#64748b', maxWidth: 560, margin: '0 auto' }}>
-            Choose your path — self-paced ground school or hands-on CFI mentorship. Both include lifetime access and everything you need to ace your FAA written test.
+            Plans starting at $299 — one-time payment, lifetime access. Choose self-paced or hands-on CFI mentorship.
           </p>
         </motion.div>
 
