@@ -194,7 +194,16 @@ export default function AdminPanel() {
   const [savingUrl, setSavingUrl] = useState(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'quizzes' | 'students' | 'queries'
+  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'quizzes' | 'students' | 'queries' | 'support'
+
+  // Support tickets tab state
+  const [tickets, setTickets] = useState(null);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketSearch, setTicketSearch] = useState('');
+  const [ticketFilter, setTicketFilter] = useState('all'); // 'all' | 'open' | 'in_progress' | 'resolved'
+  const [expandedTicket, setExpandedTicket] = useState(null);
+  const [ticketNotes, setTicketNotes] = useState({}); // ticketId → draft notes
+  const [ticketSaving, setTicketSaving] = useState({}); // ticketId → bool
 
   // AI Queries tab state
   const [aiQueries, setAiQueries] = useState(null); // null = not loaded
@@ -354,7 +363,35 @@ export default function AdminPanel() {
   useEffect(() => {
     if (activeTab === 'students' && students === null) loadStudents();
     if (activeTab === 'queries' && aiQueries === null) loadAiQueries();
+    if (activeTab === 'support' && tickets === null) loadTickets();
   }, [activeTab]);
+
+  const loadTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const { data } = await supabase
+        .from('support_tickets')
+        .select('id, user_id, user_email, user_name, subject, message, status, admin_notes, created_at, updated_at')
+        .order('created_at', { ascending: false })
+        .limit(300);
+      setTickets(data || []);
+      // Pre-fill notes drafts
+      const notes = {};
+      (data || []).forEach(t => { notes[t.id] = t.admin_notes || ''; });
+      setTicketNotes(notes);
+    } catch (err) {
+      setTickets([]);
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
+  const updateTicket = async (ticketId, updates) => {
+    setTicketSaving(s => ({ ...s, [ticketId]: true }));
+    await supabase.from('support_tickets').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', ticketId);
+    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
+    setTicketSaving(s => ({ ...s, [ticketId]: false }));
+  };
 
   const loadAiQueries = async () => {
     setAiQueriesLoading(true);
@@ -804,6 +841,7 @@ export default function AdminPanel() {
               { key: 'quizzes', label: 'Quiz Bank', icon: <BookOpen size={13} /> },
               { key: 'students', label: 'Students', icon: <Users size={13} /> },
               { key: 'queries', label: isMobile ? 'AI' : 'AI Queries', icon: <Search size={13} /> },
+              { key: 'support', label: isMobile ? '🎫' : 'Support', icon: isMobile ? null : <Mail size={13} /> },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -2012,6 +2050,245 @@ export default function AdminPanel() {
           );
         })()}
         {/* ── END AI QUERIES TAB ── */}
+
+        {/* ── SUPPORT TICKETS TAB ── */}
+        {activeTab === 'support' && (() => {
+          const STATUS_META = {
+            open:        { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Open' },
+            in_progress: { color: '#38bdf8', bg: 'rgba(56,189,248,0.12)', label: 'In Progress' },
+            resolved:    { color: '#4ade80', bg: 'rgba(34,197,94,0.12)',  label: 'Resolved' },
+          };
+
+          const filtered = (tickets || []).filter(t => {
+            const matchesFilter = ticketFilter === 'all' || t.status === ticketFilter;
+            if (!matchesFilter) return false;
+            if (!ticketSearch.trim()) return true;
+            const s = ticketSearch.toLowerCase();
+            return (
+              (t.subject || '').toLowerCase().includes(s) ||
+              (t.message || '').toLowerCase().includes(s) ||
+              (t.user_name || '').toLowerCase().includes(s) ||
+              (t.user_email || '').toLowerCase().includes(s)
+            );
+          });
+
+          const countByStatus = status => (tickets || []).filter(t => t.status === status).length;
+
+          return (
+            <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '16px' : '28px 32px' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Support Tickets
+                  </h2>
+                  <div style={{ fontSize: 13, color: '#475569', marginTop: 3 }}>
+                    {ticketsLoading ? 'Loading…' : `${(tickets || []).length} total · ${countByStatus('open')} open`}
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setTickets(null); loadTickets(); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  <RefreshCw size={13} /> Refresh
+                </button>
+              </div>
+
+              {/* Status filter pills */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                {[
+                  { key: 'all', label: `All (${(tickets || []).length})` },
+                  { key: 'open', label: `Open (${countByStatus('open')})`, color: '#f59e0b' },
+                  { key: 'in_progress', label: `In Progress (${countByStatus('in_progress')})`, color: '#38bdf8' },
+                  { key: 'resolved', label: `Resolved (${countByStatus('resolved')})`, color: '#4ade80' },
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setTicketFilter(f.key)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                      background: ticketFilter === f.key ? (f.color ? `${f.color}18` : 'rgba(255,255,255,0.08)') : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${ticketFilter === f.key ? (f.color || 'rgba(255,255,255,0.2)') : 'rgba(255,255,255,0.07)'}`,
+                      color: ticketFilter === f.key ? (f.color || '#e2e8f0') : '#64748b',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div style={{ position: 'relative', marginBottom: 16 }}>
+                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+                <input
+                  value={ticketSearch}
+                  onChange={e => setTicketSearch(e.target.value)}
+                  placeholder="Search by name, email, subject, or message…"
+                  style={{
+                    width: '100%', padding: '9px 12px 9px 32px', borderRadius: 9,
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Ticket list */}
+              {ticketsLoading ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#475569' }}>
+                  <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
+                  <div style={{ fontSize: 14 }}>Loading tickets…</div>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#475569', fontSize: 14 }}>
+                  {ticketSearch || ticketFilter !== 'all' ? 'No tickets match your filters.' : 'No support tickets yet.'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {filtered.map(ticket => {
+                    const isExpanded = expandedTicket === ticket.id;
+                    const st = STATUS_META[ticket.status] || STATUS_META.open;
+                    const dateStr = new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = new Date(ticket.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                    return (
+                      <div key={ticket.id} style={{
+                        borderRadius: 12, overflow: 'hidden',
+                        background: isExpanded ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${isExpanded ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                        transition: 'border-color 0.2s',
+                      }}>
+                        {/* Row */}
+                        <div
+                          onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', flexWrap: isMobile ? 'wrap' : 'nowrap' }}
+                        >
+                          {/* Avatar */}
+                          <div style={{
+                            width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                            background: 'linear-gradient(135deg, #0ea5e9, #818cf8)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 12, fontWeight: 700, color: '#fff',
+                          }}>
+                            {(ticket.user_name || ticket.user_email || '?')[0].toUpperCase()}
+                          </div>
+
+                          {/* Name + subject */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              {ticket.user_name || 'Unknown'}
+                              {ticket.user_email && <span style={{ fontSize: 11, color: '#475569', fontWeight: 400 }}>{ticket.user_email}</span>}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{ticket.subject}</div>
+                          </div>
+
+                          {/* Date */}
+                          {!isMobile && (
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: 11, color: '#475569' }}>{dateStr}</div>
+                              <div style={{ fontSize: 10, color: '#334155' }}>{timeStr}</div>
+                            </div>
+                          )}
+
+                          {/* Status badge */}
+                          <div style={{
+                            padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                            background: st.bg, color: st.color, flexShrink: 0,
+                          }}>
+                            {st.label}
+                          </div>
+
+                          <ChevronRight size={14} color="#334155" style={{ flexShrink: 0, transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                        </div>
+
+                        {/* Expanded */}
+                        {isExpanded && (
+                          <div style={{ padding: '0 16px 18px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginTop: 16 }}>
+                              {/* Message */}
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 8 }}>Message</div>
+                                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', fontSize: 13, color: '#94a3b8', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                                  {ticket.message}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#334155', marginTop: 8 }}>
+                                  <Calendar size={10} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                                  {dateStr} at {timeStr}
+                                </div>
+                              </div>
+
+                              {/* Admin controls */}
+                              <div>
+                                {/* Status changer */}
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 8 }}>Status</div>
+                                <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+                                  {['open', 'in_progress', 'resolved'].map(s => {
+                                    const m = STATUS_META[s];
+                                    return (
+                                      <button
+                                        key={s}
+                                        onClick={() => updateTicket(ticket.id, { status: s })}
+                                        style={{
+                                          flex: 1, padding: '7px 4px', borderRadius: 8, cursor: 'pointer',
+                                          fontSize: 11, fontWeight: 700,
+                                          background: ticket.status === s ? m.bg : 'rgba(255,255,255,0.04)',
+                                          border: `1px solid ${ticket.status === s ? m.color : 'rgba(255,255,255,0.08)'}`,
+                                          color: ticket.status === s ? m.color : '#475569',
+                                          transition: 'all 0.15s',
+                                        }}
+                                      >
+                                        {m.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Admin notes */}
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 6 }}>Response / Notes</div>
+                                <textarea
+                                  value={ticketNotes[ticket.id] ?? ''}
+                                  onChange={e => setTicketNotes(n => ({ ...n, [ticket.id]: e.target.value }))}
+                                  placeholder="Write a response or internal notes…"
+                                  rows={4}
+                                  style={{
+                                    width: '100%', padding: '10px 12px', borderRadius: 9,
+                                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                    color: '#f1f5f9', fontSize: 13, lineHeight: 1.6,
+                                    outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                                    fontFamily: 'Inter, sans-serif', marginBottom: 8,
+                                  }}
+                                  onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.35)'}
+                                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                />
+                                <button
+                                  onClick={() => updateTicket(ticket.id, { admin_notes: ticketNotes[ticket.id] || '' })}
+                                  disabled={ticketSaving[ticket.id]}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    padding: '8px 16px', borderRadius: 8,
+                                    background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                                    border: 'none', color: '#fff', fontSize: 12, fontWeight: 700,
+                                    cursor: ticketSaving[ticket.id] ? 'not-allowed' : 'pointer',
+                                    opacity: ticketSaving[ticket.id] ? 0.6 : 1,
+                                  }}
+                                >
+                                  {ticketSaving[ticket.id]
+                                    ? <><Loader2 size={12} style={{ animation: 'spin 0.8s linear infinite' }} /> Saving…</>
+                                    : <><Save size={12} /> Save Notes</>
+                                  }
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        {/* ── END SUPPORT TICKETS TAB ── */}
 
         {activeTab === 'videos' && <>
         {/* Mobile-only overlay backdrop */}

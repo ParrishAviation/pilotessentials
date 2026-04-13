@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield } from 'lucide-react';
+import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield, LifeBuoy } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/ai-instructor', icon: null, label: 'AI Instructor', emoji: '✈️' },
   { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
   { to: '/profile', icon: User, label: 'My Profile' },
+  { to: '/support', icon: LifeBuoy, label: 'Support' },
 ];
 
 export default function Sidebar() {
