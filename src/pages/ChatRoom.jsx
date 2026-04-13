@@ -509,7 +509,7 @@ export default function ChatRoom() {
           }}>✈️</div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#f1f5f9', fontFamily: "'Space Grotesk', sans-serif" }}>
-              Student Lounge
+              Student Chatroom
             </div>
             <div style={{ fontSize: 12, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#22c55e' : '#ef4444', display: 'inline-block', boxShadow: connected ? '0 0 6px #22c55e' : 'none' }} />

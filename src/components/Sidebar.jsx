@@ -11,7 +11,7 @@ const navItems = [
   { to: '/courses', icon: BookOpen, label: 'Courses' },
   { to: '/ai-instructor', icon: null, label: 'AI Instructor', emoji: '✈️' },
   { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
-  { to: '/chatroom', icon: MessageSquare, label: 'Student Lounge' },
+  { to: '/chatroom', icon: MessageSquare, label: 'Student Chatroom' },
   { to: '/profile', icon: User, label: 'My Profile' },
   { to: '/support', icon: LifeBuoy, label: 'Support' },
 ];
