@@ -722,7 +722,7 @@ function PricingSection({ onLogin, onCheckout }) {
             }}>
               <CheckCircle size={16} color="#4ade80" style={{ flexShrink: 0, marginTop: 1 }} />
               <span style={{ fontSize: 14, color: '#86efac', fontWeight: 600 }}>
-                ✈️ Pass Guarantee — if you don't pass, we cover your retake fee
+                ✈️ Pass Guarantee — if you don't pass, we do 1-on-1 live ground school with a CFI until you do
               </span>
             </div>
             {[

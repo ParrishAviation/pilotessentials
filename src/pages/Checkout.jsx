@@ -36,7 +36,7 @@ const PLANS = {
     badge: 'MOST POPULAR',
     features: [
       'Everything in Basic Access',
-      '✈️ Pass Guarantee — retake covered if you don\'t pass',
+      '✈️ Pass Guarantee — if you don\'t pass, we do 1-on-1 live ground school with a CFI until you do',
       'Priority email support',
       'Lifetime access — new content free',
     ],
