@@ -43,9 +43,27 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on the server.' });
   }
 
-  const { messages, context } = req.body || {};
+  const { messages, context, userId } = req.body || {};
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages array required' });
+  }
+
+  // ── Query limit: 100 per user ──
+  const QUERY_LIMIT = 100;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (userId && supabaseUrl && supabaseKey) {
+    try {
+      const countRes = await fetch(
+        `${supabaseUrl}/rest/v1/ai_query_log?user_id=eq.${userId}&select=id`,
+        { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}`, 'Prefer': 'count=exact', 'Range': '0-0' } }
+      );
+      const contentRange = countRes.headers.get('content-range'); // e.g. "0-0/47"
+      const total = contentRange ? parseInt(contentRange.split('/')[1], 10) : 0;
+      if (total >= QUERY_LIMIT) {
+        return res.status(429).json({ error: 'query_limit_reached', used: total, limit: QUERY_LIMIT });
+      }
+    } catch (_) { /* non-fatal — proceed if count check fails */ }
   }
 
   const systemWithContext = context

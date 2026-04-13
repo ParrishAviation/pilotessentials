@@ -224,6 +224,8 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [queryCount, setQueryCount] = useState(null);
+  const QUERY_LIMIT = 100;
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const location = useLocation();
@@ -258,12 +260,19 @@ export default function AIChat() {
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           context,
+          userId: authUser?.id ?? null,
         }),
       });
 
       const data = await res.json();
 
       if (data.error) {
+        if (data.error === 'query_limit_reached') {
+          setQueryCount(data.used);
+          setMessages(prev => prev.slice(0, -1)); // remove the user msg that won't be answered
+          setLoading(false);
+          return;
+        }
         if (data.error.includes('ANTHROPIC_API_KEY')) {
           setNotConfigured(true);
         } else {
@@ -412,6 +421,34 @@ export default function AIChat() {
               </div>
             </div>
 
+            {/* Query limit reached */}
+            {queryCount !== null && queryCount >= QUERY_LIMIT && (
+              <div style={{
+                margin: '12px 14px 0',
+                padding: '14px 16px',
+                borderRadius: 10,
+                background: 'rgba(245,158,11,0.08)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                flexShrink: 0,
+              }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>✈️</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fde68a', marginBottom: 4 }}>
+                      You've used all {QUERY_LIMIT} AI queries
+                    </div>
+                    <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+                      You've reached the {QUERY_LIMIT}-query limit for Captain AI. Contact{' '}
+                      <a href="mailto:support@mypilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>
+                        support@mypilotessentials.com
+                      </a>{' '}
+                      if you need more queries.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Not configured warning */}
             {notConfigured && (
               <div style={{
@@ -552,18 +589,18 @@ export default function AIChat() {
                     e.target.style.height = 'auto';
                     e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
                   }}
-                  disabled={loading}
+                  disabled={loading || (queryCount !== null && queryCount >= QUERY_LIMIT)}
                 />
                 <button
                   onClick={() => sendMessage()}
                   disabled={!input.trim() || loading}
                   style={{
                     width: 32, height: 32, borderRadius: 8, border: 'none',
-                    cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                    background: input.trim() && !loading
+                    cursor: input.trim() && !loading && !(queryCount >= QUERY_LIMIT) ? 'pointer' : 'not-allowed',
+                    background: input.trim() && !loading && !(queryCount >= QUERY_LIMIT)
                       ? 'linear-gradient(135deg, #0ea5e9, #6366f1)'
                       : 'rgba(255,255,255,0.06)',
-                    opacity: input.trim() && !loading ? 1 : 0.4,
+                    opacity: input.trim() && !loading && !(queryCount >= QUERY_LIMIT) ? 1 : 0.4,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0, transition: 'all 0.15s',
                     boxShadow: input.trim() && !loading ? '0 2px 8px rgba(14,165,233,0.4)' : 'none',
