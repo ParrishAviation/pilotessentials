@@ -13,7 +13,7 @@ function applyOverrides(questions, overridesMap) {
   return questions.map(q => {
     const ov = overridesMap[q.id];
     if (!ov) return q;
-    return { ...q, question: ov.question, options: ov.options, correct: ov.correct, explanation: ov.explanation };
+    return { ...q, question: ov.question, options: ov.options, correct: ov.correct, explanation: ov.explanation, figure: ov.figure ?? null };
   });
 }
 
@@ -70,6 +70,79 @@ function FigureBanner({ questionText }) {
           );
         })}
       </div>
+    </motion.div>
+  );
+}
+
+// Inline viewer for an attached FAA figure — shows PDF page in an iframe
+function FigureViewer({ figureNum }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!figureNum) return null;
+  const page = FIGURE_PAGES[figureNum];
+  const pdfUrl = page ? `${FAA_SUPPLEMENT_PDF}#page=${page}` : FAA_SUPPLEMENT_PDF;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{ marginBottom: 16 }}
+    >
+      {/* Header bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', borderRadius: expanded ? '12px 12px 0 0' : 12,
+        background: 'rgba(245,158,11,0.08)',
+        border: '1px solid rgba(245,158,11,0.3)',
+        borderBottom: expanded ? 'none' : '1px solid rgba(245,158,11,0.3)',
+        cursor: 'pointer',
+      }} onClick={() => setExpanded(v => !v)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 15 }}>🗺️</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>
+            FAA Supplement — Figure {figureNum}
+          </span>
+          {page && (
+            <span style={{ fontSize: 11, color: '#78716c', fontWeight: 500 }}>
+              (PDF p.{page})
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <a
+            href={pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 600, color: '#f59e0b',
+              padding: '3px 10px', borderRadius: 6,
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.3)',
+              textDecoration: 'none',
+            }}
+          >
+            <ExternalLink size={10} /> Open PDF
+          </a>
+          <span style={{ fontSize: 12, color: '#78716c' }}>{expanded ? '▲' : '▼'}</span>
+        </div>
+      </div>
+      {/* Expandable iframe */}
+      {expanded && (
+        <div style={{
+          border: '1px solid rgba(245,158,11,0.3)',
+          borderTop: 'none',
+          borderRadius: '0 0 12px 12px',
+          overflow: 'hidden',
+          background: '#1e1b1b',
+        }}>
+          <iframe
+            src={pdfUrl}
+            title={`FAA Figure ${figureNum}`}
+            style={{ width: '100%', height: 480, border: 'none', display: 'block' }}
+          />
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -445,12 +518,12 @@ export default function Quiz() {
     if (isFinalTest) return;
     supabase
       .from('quiz_overrides')
-      .select('question_id, question, options, correct, explanation')
+      .select('question_id, question, options, correct, explanation, figure')
       .eq('quiz_key', lessonId)
       .then(({ data }) => {
         if (!data || data.length === 0) return;
         const map = {};
-        data.forEach(row => { map[row.question_id] = row; });
+        data.forEach(row => { map[row.question_id] = { ...row, figure: row.figure ?? null }; });
         setOverridesMap(map);
       });
   }, [lessonId, isFinalTest]);
@@ -749,7 +822,10 @@ export default function Quiz() {
                 {/* Question */}
                 <ProgressDots total={questions.length} current={currentQ} answers={answers} />
 
-                <FigureBanner questionText={q.question} />
+                {/* Inline figure viewer for admin-attached figures */}
+                <FigureViewer figureNum={q.figure} />
+                {/* Text-based figure reference banner (for questions that mention figures in text) */}
+                {!q.figure && <FigureBanner questionText={q.question} />}
 
                 <div style={{
                   background: 'rgba(255,255,255,0.03)',

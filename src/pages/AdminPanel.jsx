@@ -8,7 +8,7 @@ import {
   CloudUpload, X, Eye, Link, ExternalLink, BookOpen, Edit3, Save, Plus, RotateCcw,
   Users, Search, TrendingUp, Award, Zap, Calendar, Mail, ChevronUp
 } from 'lucide-react';
-import { COURSES, QUIZ_BANK } from '../data/courses';
+import { COURSES, QUIZ_BANK, FIGURE_PAGES, FAA_SUPPLEMENT_PDF } from '../data/courses';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -230,6 +230,8 @@ export default function AdminPanel() {
   const [quizSaving, setQuizSaving] = useState(false);
   const [quizMsg, setQuizMsg] = useState(null);
   const [figureFilter, setFigureFilter] = useState('all'); // 'all' | 'with_figure' | 'without_figure'
+  const [figurePickerOpen, setFigurePickerOpen] = useState(null); // { quizKey, questionId } or null
+  const [figureSaving, setFigureSaving] = useState(false);
 
   const referencesFigure = (text = '') => {
     const lower = text.toLowerCase();
@@ -318,6 +320,7 @@ export default function AdminPanel() {
           options: row.options,
           correct: row.correct,
           explanation: row.explanation,
+          figure: row.figure ?? null,
         };
       });
       setOverrides(map);
@@ -480,6 +483,7 @@ export default function AdminPanel() {
     if (!editingQ || !editForm) return;
     setQuizSaving(true);
     setQuizMsg(null);
+    const existingFigure = overrides[editingQ.quizKey]?.[editingQ.questionId]?.figure ?? null;
     const payload = {
       quiz_key: editingQ.quizKey,
       question_id: editingQ.questionId,
@@ -487,6 +491,7 @@ export default function AdminPanel() {
       options: editForm.options,
       correct: editForm.correct,
       explanation: editForm.explanation.trim(),
+      figure: existingFigure, // preserve any attached figure
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('quiz_overrides').upsert(payload, { onConflict: 'quiz_key,question_id' });
@@ -496,7 +501,7 @@ export default function AdminPanel() {
     } else {
       setOverrides(prev => ({
         ...prev,
-        [editingQ.quizKey]: { ...(prev[editingQ.quizKey] || {}), [editingQ.questionId]: { ...editForm } },
+        [editingQ.quizKey]: { ...(prev[editingQ.quizKey] || {}), [editingQ.questionId]: { ...editForm, figure: existingFigure } },
       }));
       setQuizMsg({ type: 'success', text: 'Question saved!' });
       setEditingQ(null);
@@ -516,6 +521,39 @@ export default function AdminPanel() {
         }
         return next;
       });
+    }
+  };
+
+  // Attach or remove a figure number from a question (upserts the override row with figure field)
+  const saveFigure = async (quizKey, questionId, figureNum) => {
+    setFigureSaving(true);
+    // Get existing override or base question to preserve other fields
+    const existing = overrides[quizKey]?.[questionId];
+    const baseQ = QUIZ_BANK[quizKey]?.questions?.find(q => q.id === questionId);
+    const payload = {
+      quiz_key: quizKey,
+      question_id: questionId,
+      question: existing?.question ?? baseQ?.question ?? '',
+      options: existing?.options ?? baseQ?.options ?? [],
+      correct: existing?.correct ?? baseQ?.correct ?? 0,
+      explanation: existing?.explanation ?? baseQ?.explanation ?? '',
+      figure: figureNum, // null to remove
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from('quiz_overrides').upsert(payload, { onConflict: 'quiz_key,question_id' });
+    setFigureSaving(false);
+    if (!error) {
+      setOverrides(prev => ({
+        ...prev,
+        [quizKey]: {
+          ...(prev[quizKey] || {}),
+          [questionId]: { ...(prev[quizKey]?.[questionId] || {}), ...payload },
+        },
+      }));
+      setFigurePickerOpen(null);
+      setQuizMsg({ type: 'success', text: figureNum ? `Figure ${figureNum} attached!` : 'Figure removed.' });
+    } else {
+      setQuizMsg({ type: 'error', text: error.message });
     }
   };
 
@@ -1499,7 +1537,7 @@ export default function AdminPanel() {
                               </div>
                               {/* Action buttons (view mode only) */}
                               {!isEditing && (
-                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                                   <button
                                     onClick={() => startEditQuestion(selectedQuizKey, q)}
                                     style={{
@@ -1509,6 +1547,25 @@ export default function AdminPanel() {
                                     }}
                                   >
                                     <Edit3 size={12} /> Edit
+                                  </button>
+                                  <button
+                                    onClick={() => setFigurePickerOpen(
+                                      figurePickerOpen?.quizKey === selectedQuizKey && figurePickerOpen?.questionId === q.id
+                                        ? null
+                                        : { quizKey: selectedQuizKey, questionId: q.id }
+                                    )}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: 5,
+                                      padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                      background: override?.figure
+                                        ? 'rgba(245,158,11,0.15)'
+                                        : 'rgba(245,158,11,0.06)',
+                                      border: `1px solid ${override?.figure ? 'rgba(245,158,11,0.4)' : 'rgba(245,158,11,0.2)'}`,
+                                      color: '#f59e0b',
+                                    }}
+                                    title="Attach FAA figure"
+                                  >
+                                    🗺️ {override?.figure ? `Fig ${override.figure}` : 'Figure'}
                                   </button>
                                   {override && (
                                     <button
@@ -1526,6 +1583,53 @@ export default function AdminPanel() {
                                 </div>
                               )}
                             </div>
+                            {/* Figure picker panel */}
+                            {figurePickerOpen?.quizKey === selectedQuizKey && figurePickerOpen?.questionId === q.id && (
+                              <div style={{
+                                borderTop: '1px solid rgba(245,158,11,0.2)',
+                                background: 'rgba(245,158,11,0.03)',
+                                padding: '16px 20px',
+                              }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span>🗺️ Attach FAA Supplement Figure</span>
+                                  {override?.figure && (
+                                    <button
+                                      onClick={() => saveFigure(selectedQuizKey, q.id, null)}
+                                      disabled={figureSaving}
+                                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontWeight: 600 }}
+                                    >
+                                      Remove Figure
+                                    </button>
+                                  )}
+                                </div>
+                                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 12px' }}>
+                                  Select the figure number that students need to reference. It will display inline during the quiz.
+                                </p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                  {Object.entries(FIGURE_PAGES).map(([num, page]) => {
+                                    const n = parseInt(num, 10);
+                                    const isSelected = override?.figure === n;
+                                    return (
+                                      <button
+                                        key={n}
+                                        onClick={() => saveFigure(selectedQuizKey, q.id, n)}
+                                        disabled={figureSaving}
+                                        title={`Figure ${n} — PDF page ${page}`}
+                                        style={{
+                                          padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                          background: isSelected ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.04)',
+                                          border: `1px solid ${isSelected ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                                          color: isSelected ? '#fbbf24' : '#64748b',
+                                          transition: 'all 0.12s',
+                                        }}
+                                      >
+                                        Fig {n}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

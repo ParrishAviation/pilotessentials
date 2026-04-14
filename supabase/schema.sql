@@ -218,3 +218,29 @@ create or replace view public.leaderboard as
   from public.profiles p
   order by p.xp desc
   limit 50;
+
+-- ============================================================
+-- Quiz Overrides (admin-editable questions + figure attachments)
+-- ============================================================
+create table if not exists public.quiz_overrides (
+  id uuid default gen_random_uuid() primary key,
+  quiz_key text not null,
+  question_id bigint not null,
+  question text not null,
+  options jsonb not null,
+  correct integer not null,
+  explanation text,
+  figure integer default null,  -- FAA supplement figure number (e.g. 8 = Figure 8)
+  updated_at timestamptz default now(),
+  unique(quiz_key, question_id)
+);
+alter table public.quiz_overrides enable row level security;
+create policy "Anyone can read quiz overrides" on public.quiz_overrides
+  for select using (true);
+create policy "Admins can manage quiz overrides" on public.quiz_overrides
+  for all using (
+    auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+  );
+
+-- Migration: add figure column to existing quiz_overrides table (run if table already exists)
+alter table public.quiz_overrides add column if not exists figure integer default null;
