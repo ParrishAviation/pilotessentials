@@ -72,7 +72,12 @@ create table if not exists public.cfi_chat_messages (
 );
 alter table public.cfi_chat_messages enable row level security;
 
--- Only users with an active cfi_mentorship purchase (or admins) can read CFI messages
+-- Drop old policies if they exist (safe re-run)
+drop policy if exists "Read CFI chat messages" on public.cfi_chat_messages;
+drop policy if exists "Insert CFI chat messages" on public.cfi_chat_messages;
+drop policy if exists "Delete CFI chat messages" on public.cfi_chat_messages;
+
+-- Admins can always read; cfi_mentorship purchasers can read
 create policy "Read CFI chat messages" on public.cfi_chat_messages
   for select using (
     auth.uid() is not null
@@ -83,12 +88,11 @@ create policy "Read CFI chat messages" on public.cfi_chat_messages
         select 1 from public.purchases
         where user_id = auth.uid()
           and plan = 'cfi_mentorship'
-          and (cfi_access_expires_at is null or cfi_access_expires_at > now())
       )
     )
   );
 
--- Only cfi_mentorship users (or admins) can post
+-- Admins can always post; cfi_mentorship purchasers can post
 create policy "Insert CFI chat messages" on public.cfi_chat_messages
   for insert with check (
     auth.uid() = user_id
@@ -98,7 +102,6 @@ create policy "Insert CFI chat messages" on public.cfi_chat_messages
         select 1 from public.purchases
         where user_id = auth.uid()
           and plan = 'cfi_mentorship'
-          and (cfi_access_expires_at is null or cfi_access_expires_at > now())
       )
     )
   );
@@ -107,11 +110,12 @@ create policy "Insert CFI chat messages" on public.cfi_chat_messages
 create policy "Delete CFI chat messages" on public.cfi_chat_messages
   for update using (
     auth.uid() = user_id
+    or auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
     or exists (select 1 from public.chat_moderators where user_id = auth.uid())
   );
 
 -- Index for fast ordered fetch
 create index if not exists cfi_chat_messages_created_at_idx on public.cfi_chat_messages (created_at desc);
 
--- Enable Realtime
+-- Enable Realtime (ignore error if already added)
 alter publication supabase_realtime add table public.cfi_chat_messages;
