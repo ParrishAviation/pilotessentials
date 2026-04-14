@@ -78,8 +78,8 @@ function AuthenticatedApp() {
       <Routes>
         <Route path="/quiz/:courseId/:lessonId" element={<PaywallGate><Quiz /></PaywallGate>} />
         <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/ai-command-center" element={<AICommandCenter />} />
         <Route element={<Layout />}>
+          <Route path="/ai-command-center" element={<AICommandCenter />} />
           <Route path="/app" element={<Dashboard />} />
           <Route path="/courses" element={<PaywallGate><CourseCatalog /></PaywallGate>} />
           <Route path="/course/:courseId" element={<PaywallGate><CourseDetail /></PaywallGate>} />

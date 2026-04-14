@@ -238,9 +238,16 @@ Return ONLY a valid JSON array of recommendation objects. No markdown, no explan
   const data = await res.json();
   const text = data.content?.[0]?.text || '[]';
 
-  // Parse JSON — strip any markdown fences if present
+  // Robustly extract the JSON array even if Claude adds prose or markdown
   const clean = text.replace(/^```json\n?/,'').replace(/\n?```$/,'').trim();
-  return JSON.parse(clean);
+
+  // Find the first [ and last ] to extract just the array
+  const start = clean.indexOf('[');
+  const end = clean.lastIndexOf(']');
+  if (start === -1 || end === -1) throw new Error('Claude did not return a JSON array');
+  const arrayStr = clean.slice(start, end + 1);
+
+  return JSON.parse(arrayStr);
 }
 
 export default async function handler(req, res) {
@@ -252,19 +259,21 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  if (!serviceKey) return res.status(500).json({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured' });
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured. Add it to your Vercel environment variables.' });
 
   try {
     // Check cache — if recommendations generated in last 6 hours, return them
-    if (!forceRefresh) {
-      const sixHoursAgo = new Date(Date.now() - 6 * 3600000).toISOString();
-      const cached = await sbFetch(
-        `ai_recommendations?status=eq.open&generated_at=gte.${sixHoursAgo}&order=impact_score.desc&limit=50`
-      );
-      if (cached && cached.length > 0) {
-        return res.status(200).json({ recommendations: cached, cached: true, generatedAt: cached[0].generated_at });
-      }
+    // (Only if ai_recommendations table exists — silently skip if not)
+    if (!forceRefresh && serviceKey) {
+      try {
+        const sixHoursAgo = new Date(Date.now() - 6 * 3600000).toISOString();
+        const cached = await sbFetch(
+          `ai_recommendations?status=eq.open&generated_at=gte.${sixHoursAgo}&order=impact_score.desc&limit=50`
+        );
+        if (Array.isArray(cached) && cached.length > 0) {
+          return res.status(200).json({ recommendations: cached, cached: true, generatedAt: cached[0].generated_at });
+        }
+      } catch (_) { /* table may not exist yet — fall through to generate */ }
     }
 
     // Gather fresh data
@@ -274,35 +283,35 @@ export default async function handler(req, res) {
     // Generate AI recommendations
     const recs = await generateRecommendations(insights);
 
-    // Store in Supabase (clear old open ones first, then insert fresh)
+    // Store in Supabase — silently skip if table doesn't exist yet
     if (serviceKey) {
-      // Mark old open recommendations as superseded
-      await fetch(`${supabaseUrl}/rest/v1/ai_recommendations?status=eq.open`, {
-        method: 'DELETE',
-        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-      });
+      try {
+        await fetch(`${supabaseUrl}/rest/v1/ai_recommendations?status=eq.open`, {
+          method: 'DELETE',
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        });
 
-      // Insert new ones
-      const toInsert = recs.map(r => ({
-        category: r.category,
-        priority: r.priority,
-        title: r.title,
-        description: r.description,
-        action: r.action,
-        impact_score: r.impact_score || 50,
-        data: {},
-        status: 'open',
-        generated_at: new Date().toISOString(),
-      }));
+        const toInsert = recs.map(r => ({
+          category: r.category || 'learning',
+          priority: r.priority || 'medium',
+          title: String(r.title || '').slice(0, 200),
+          description: String(r.description || ''),
+          action: String(r.action || ''),
+          impact_score: Number(r.impact_score) || 50,
+          data: {},
+          status: 'open',
+          generated_at: new Date().toISOString(),
+        }));
 
-      await fetch(`${supabaseUrl}/rest/v1/ai_recommendations`, {
-        method: 'POST',
-        headers: {
-          apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json', Prefer: 'return=minimal',
-        },
-        body: JSON.stringify(toInsert),
-      });
+        await fetch(`${supabaseUrl}/rest/v1/ai_recommendations`, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json', Prefer: 'return=minimal',
+          },
+          body: JSON.stringify(toInsert),
+        });
+      } catch (_) { /* table may not exist yet — recommendations still returned to client */ }
     }
 
     return res.status(200).json({
