@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Clock,
   BookOpen, Zap, Star, Users, Award, ChevronDown, ChevronUp, Video, FileText, Shield, BookMarked,
-  Trash2, RotateCcw, ExternalLink
+  Trash2, RotateCcw, ExternalLink, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { COURSES } from '../data/courses';
 import { useUser } from '../context/UserContext';
@@ -538,6 +538,16 @@ export default function CourseDetail() {
 
   // Mobile sidebar state
   const [lessonDrawerOpen, setLessonDrawerOpen] = useState(false);
+  const [lessonSidebarCollapsed, setLessonSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('skyace_lesson_sidebar_collapsed') === 'true'; } catch { return false; }
+  });
+  const toggleLessonSidebar = () => {
+    setLessonSidebarCollapsed(v => {
+      const next = !v;
+      try { localStorage.setItem('skyace_lesson_sidebar_collapsed', String(next)); } catch {}
+      return next;
+    });
+  };
   const isMobileView = typeof window !== 'undefined' && window.innerWidth < 1024;
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   useEffect(() => {
@@ -575,7 +585,7 @@ export default function CourseDetail() {
 
       {/* Sidebar */}
       <div style={{
-        width: 300, flexShrink: 0,
+        flexShrink: 0,
         background: 'rgba(6,15,30,0.98)',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         overflow: 'auto',
@@ -591,7 +601,14 @@ export default function CourseDetail() {
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           boxShadow: lessonDrawerOpen ? '4px 0 32px rgba(0,0,0,0.6)' : 'none',
-        } : {}),
+        } : {
+          // Desktop: collapsible
+          width: lessonSidebarCollapsed ? 0 : 300,
+          minWidth: lessonSidebarCollapsed ? 0 : 300,
+          overflow: lessonSidebarCollapsed ? 'hidden' : 'auto',
+          transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1), min-width 0.25s cubic-bezier(0.4,0,0.2,1)',
+          borderRight: lessonSidebarCollapsed ? '1px solid transparent' : '1px solid rgba(255,255,255,0.06)',
+        }),
       }}>
         {/* Course Header */}
         <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -607,7 +624,7 @@ export default function CourseDetail() {
               <ChevronLeft size={16} /> Back to Courses
             </button>
             {/* Close button — only on narrow screens */}
-            {isNarrow && (
+            {isNarrow ? (
               <button
                 onClick={() => setLessonDrawerOpen(false)}
                 style={{
@@ -618,6 +635,22 @@ export default function CourseDetail() {
                 }}
               >
                 <ChevronLeft size={16} />
+              </button>
+            ) : (
+              /* Desktop collapse toggle */
+              <button
+                onClick={toggleLessonSidebar}
+                title="Collapse lesson sidebar"
+                style={{
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8, width: 28, height: 28,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: '#475569', flexShrink: 0, transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              >
+                <PanelLeftClose size={15} />
               </button>
             )}
           </div>
@@ -664,6 +697,32 @@ export default function CourseDetail() {
           ))}
         </div>
       </div>
+
+      {/* Desktop: floating re-open tab when sidebar is collapsed */}
+      {!isNarrow && lessonSidebarCollapsed && (
+        <button
+          onClick={toggleLessonSidebar}
+          title="Expand lesson sidebar"
+          style={{
+            position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+            zIndex: 30,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            width: 22, height: 72,
+            background: 'rgba(14,165,233,0.12)',
+            border: '1px solid rgba(56,189,248,0.25)',
+            borderLeft: 'none',
+            borderRadius: '0 10px 10px 0',
+            cursor: 'pointer',
+            color: '#38bdf8',
+            transition: 'all 0.2s',
+            backdropFilter: 'blur(8px)',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.width = '28px'; e.currentTarget.style.background = 'rgba(14,165,233,0.2)'; }}
+          onMouseLeave={e => { e.currentTarget.style.width = '22px'; e.currentTarget.style.background = 'rgba(14,165,233,0.12)'; }}
+        >
+          <PanelLeftOpen size={13} />
+        </button>
+      )}
 
       {/* Main Content */}
       <div style={{ flex: 1, overflow: 'auto', background: '#060f1e', minWidth: 0 }}>
