@@ -18,6 +18,10 @@ import ThankYou from './pages/ThankYou';
 import PaywallGate from './components/PaywallGate';
 import SupportTicket from './pages/SupportTicket';
 import ChatRoom from './pages/ChatRoom';
+import AdminAnalytics from './pages/AdminAnalytics';
+import AdminCampaigns from './pages/AdminCampaigns';
+import AdminCFIs from './pages/AdminCFIs';
+import CFIScheduling from './pages/CFIScheduling';
 
 // Ad landing pages
 import AdPage1 from './pages/ads/AdPage1';
@@ -80,10 +84,14 @@ function AuthenticatedApp() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route element={<Layout />}>
           <Route path="/ai-command-center" element={<AICommandCenter />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          <Route path="/admin/campaigns" element={<AdminCampaigns />} />
+          <Route path="/admin/cfis" element={<AdminCFIs />} />
           <Route path="/app" element={<Dashboard />} />
           <Route path="/courses" element={<PaywallGate><CourseCatalog /></PaywallGate>} />
           <Route path="/course/:courseId" element={<PaywallGate><CourseDetail /></PaywallGate>} />
           <Route path="/ai-instructor" element={<PaywallGate><AIInstructor /></PaywallGate>} />
+          <Route path="/schedule" element={<PaywallGate><CFIScheduling /></PaywallGate>} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/chatroom" element={<ChatRoom />} />
           <Route path="/profile" element={<Profile />} />

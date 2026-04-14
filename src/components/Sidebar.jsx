@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield, LifeBuoy, MessageSquare, X, PanelLeftClose, PanelLeftOpen, Brain } from 'lucide-react';
+import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield, LifeBuoy, MessageSquare, X, PanelLeftClose, PanelLeftOpen, Brain, BarChart2, Mail, Users, CalendarDays } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/app', icon: Home, label: 'Dashboard' },
   { to: '/courses', icon: BookOpen, label: 'Courses' },
   { to: '/ai-instructor', icon: null, label: 'AI Instructor', emoji: '✈️' },
+  { to: '/schedule', icon: CalendarDays, label: 'Book a CFI' },
   { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
   { to: '/chatroom', icon: MessageSquare, label: 'Chatroom' },
   { to: '/profile', icon: User, label: 'My Profile' },
@@ -204,27 +205,20 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }) {
             {isCollapsed ? (
               <>
                 <NavLink to="/admin" title="Admin Panel"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 40, height: 40, borderRadius: 10, margin: '3px auto',
-                    background: location.pathname === '/admin' ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)',
-                    border: '1px solid rgba(129,140,248,0.25)',
-                    color: '#818cf8', textDecoration: 'none',
-                  }}
-                >
-                  <Shield size={17} />
-                </NavLink>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, margin: '3px auto', background: location.pathname === '/admin' ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.25)', color: '#818cf8', textDecoration: 'none' }}
+                ><Shield size={17} /></NavLink>
+                <NavLink to="/admin/analytics" title="Analytics"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, margin: '3px auto', background: location.pathname === '/admin/analytics' ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.25)', color: '#818cf8', textDecoration: 'none' }}
+                ><BarChart2 size={17} /></NavLink>
+                <NavLink to="/admin/campaigns" title="Campaigns"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, margin: '3px auto', background: location.pathname === '/admin/campaigns' ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.25)', color: '#818cf8', textDecoration: 'none' }}
+                ><Mail size={17} /></NavLink>
+                <NavLink to="/admin/cfis" title="CFI Management"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, margin: '3px auto', background: location.pathname === '/admin/cfis' ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.25)', color: '#818cf8', textDecoration: 'none' }}
+                ><Users size={17} /></NavLink>
                 <NavLink to="/ai-command-center" title="AI Command Center"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 40, height: 40, borderRadius: 10, margin: '3px auto',
-                    background: location.pathname === '/ai-command-center' ? 'rgba(167,139,250,0.2)' : 'rgba(167,139,250,0.08)',
-                    border: '1px solid rgba(167,139,250,0.25)',
-                    color: '#a78bfa', textDecoration: 'none',
-                  }}
-                >
-                  <Brain size={17} />
-                </NavLink>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, margin: '3px auto', background: location.pathname === '/ai-command-center' ? 'rgba(167,139,250,0.2)' : 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', color: '#a78bfa', textDecoration: 'none' }}
+                ><Brain size={17} /></NavLink>
               </>
             ) : (
               <>
@@ -235,6 +229,30 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }) {
                   <Shield size={17} color="#818cf8" />
                   <span style={{ color: '#818cf8' }}>Admin Panel</span>
                   {location.pathname === '/admin' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#818cf8' }} />}
+                </NavLink>
+                <NavLink to="/admin/analytics"
+                  className={`sidebar-link ${location.pathname === '/admin/analytics' ? 'active' : ''}`}
+                  style={{ marginBottom: 2, background: location.pathname === '/admin/analytics' ? 'rgba(129,140,248,0.15)' : 'rgba(129,140,248,0.06)', border: '1px solid rgba(129,140,248,0.2)' }}
+                >
+                  <BarChart2 size={17} color="#818cf8" />
+                  <span style={{ color: '#818cf8' }}>Analytics</span>
+                  {location.pathname === '/admin/analytics' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#818cf8' }} />}
+                </NavLink>
+                <NavLink to="/admin/campaigns"
+                  className={`sidebar-link ${location.pathname === '/admin/campaigns' ? 'active' : ''}`}
+                  style={{ marginBottom: 2, background: location.pathname === '/admin/campaigns' ? 'rgba(129,140,248,0.15)' : 'rgba(129,140,248,0.06)', border: '1px solid rgba(129,140,248,0.2)' }}
+                >
+                  <Mail size={17} color="#818cf8" />
+                  <span style={{ color: '#818cf8' }}>Campaigns</span>
+                  {location.pathname === '/admin/campaigns' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#818cf8' }} />}
+                </NavLink>
+                <NavLink to="/admin/cfis"
+                  className={`sidebar-link ${location.pathname === '/admin/cfis' ? 'active' : ''}`}
+                  style={{ marginBottom: 2, background: location.pathname === '/admin/cfis' ? 'rgba(129,140,248,0.15)' : 'rgba(129,140,248,0.06)', border: '1px solid rgba(129,140,248,0.2)' }}
+                >
+                  <Users size={17} color="#818cf8" />
+                  <span style={{ color: '#818cf8' }}>CFI Management</span>
+                  {location.pathname === '/admin/cfis' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#818cf8' }} />}
                 </NavLink>
                 <NavLink to="/ai-command-center"
                   className={`sidebar-link ${location.pathname === '/ai-command-center' ? 'active' : ''}`}

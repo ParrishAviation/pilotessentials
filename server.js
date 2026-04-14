@@ -152,5 +152,27 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// Route: POST /api/send-campaign
+app.post('/api/send-campaign', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/send-campaign.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Route: POST /api/cfi-booking-notify
+app.post('/api/cfi-booking-notify', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/cfi-booking-notify.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(200).json({ ok: true }); // never block booking
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`✈️  API server running on http://localhost:${PORT}`));
