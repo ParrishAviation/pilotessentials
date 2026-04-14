@@ -11,6 +11,7 @@ import Quiz from './pages/Quiz';
 import Profile from './pages/Profile';
 import Leaderboard from './pages/Leaderboard';
 import AdminPanel from './pages/AdminPanel';
+import AICommandCenter from './pages/AICommandCenter';
 import AIInstructor from './pages/AIInstructor';
 import Checkout from './pages/Checkout';
 import ThankYou from './pages/ThankYou';
@@ -77,6 +78,7 @@ function AuthenticatedApp() {
       <Routes>
         <Route path="/quiz/:courseId/:lessonId" element={<PaywallGate><Quiz /></PaywallGate>} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/ai-command-center" element={<AICommandCenter />} />
         <Route element={<Layout />}>
           <Route path="/app" element={<Dashboard />} />
           <Route path="/courses" element={<PaywallGate><CourseCatalog /></PaywallGate>} />

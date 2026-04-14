@@ -11,6 +11,7 @@ import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import StudyGuide from '../components/StudyGuide';
+import { track } from '../lib/analytics';
 
 const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
 
@@ -507,6 +508,7 @@ export default function CourseDetail() {
     playCompleteSound();
     triggerMiniConfetti();
     completeLesson(activeLesson.id, activeLesson.xp);
+    track('lesson_complete', { lesson_id: activeLesson.id, course_id: courseId, xp: activeLesson.xp });
     // Check if module is complete (use expandedModules)
     const parentModule = expandedModules.find(m => m.lessons.some(l => l.id === activeLesson.id));
     if (parentModule) {
@@ -564,6 +566,8 @@ export default function CourseDetail() {
     } else {
       setActiveLesson(lesson);
       if (isNarrow) setLessonDrawerOpen(false);
+      // Track lesson start
+      track('lesson_start', { lesson_id: lesson.id, course_id: courseId });
     }
   };
 

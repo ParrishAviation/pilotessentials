@@ -6,6 +6,7 @@ import { QUIZ_BANK, COURSES, FIGURE_PAGES, FAA_SUPPLEMENT_PDF } from '../data/co
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { track } from '../lib/analytics';
 
 // Merge Supabase overrides on top of static quiz bank questions
 function applyOverrides(questions, overridesMap) {
@@ -616,6 +617,7 @@ export default function Quiz() {
     if (currentQ === questions.length - 1) {
       const finalScore = Object.values({ ...answers }).filter(Boolean).length;
       const isPerfect = finalScore === questions.length;
+      const pct = Math.round((finalScore / questions.length) * 100);
       setScore(finalScore);
       setDone(true);
       if (!user.completedLessons.includes(lessonId)) {
@@ -624,6 +626,19 @@ export default function Quiz() {
       } else {
         saveQuizScore(lessonId, finalScore, questions.length, isPerfect);
       }
+      // Track quiz completion with wrong question IDs for miss-rate analysis
+      const wrongQuestions = questions
+        .map((q, i) => answers[i] === false ? (q.id || i) : null)
+        .filter(Boolean);
+      track('quiz_attempt', {
+        quiz_id: lessonId,
+        course_id: courseId,
+        score: finalScore,
+        total: questions.length,
+        percent: pct,
+        is_perfect: isPerfect,
+        wrongQuestions,
+      });
       // Refresh history after a short delay so the new attempt is in DB
       setTimeout(refreshAttempts, 1500);
     } else {

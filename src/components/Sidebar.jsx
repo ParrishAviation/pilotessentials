@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield, LifeBuoy, MessageSquare, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, BookOpen, Trophy, User, Zap, Star, ChevronRight, LogOut, Shield, LifeBuoy, MessageSquare, X, PanelLeftClose, PanelLeftOpen, Brain } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -195,33 +195,56 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }) {
           );
         })}
 
-        {/* Admin link */}
+        {/* Admin links */}
         {isAdmin && (
           <>
             {!isCollapsed && (
               <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, padding: '14px 8px 4px' }}>Admin</div>
             )}
             {isCollapsed ? (
-              <NavLink to="/admin" title="Admin Panel"
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 40, height: 40, borderRadius: 10, margin: '3px auto',
-                  background: location.pathname === '/admin' ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)',
-                  border: '1px solid rgba(129,140,248,0.25)',
-                  color: '#818cf8', textDecoration: 'none',
-                }}
-              >
-                <Shield size={17} />
-              </NavLink>
+              <>
+                <NavLink to="/admin" title="Admin Panel"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 40, height: 40, borderRadius: 10, margin: '3px auto',
+                    background: location.pathname === '/admin' ? 'rgba(129,140,248,0.2)' : 'rgba(129,140,248,0.08)',
+                    border: '1px solid rgba(129,140,248,0.25)',
+                    color: '#818cf8', textDecoration: 'none',
+                  }}
+                >
+                  <Shield size={17} />
+                </NavLink>
+                <NavLink to="/ai-command-center" title="AI Command Center"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 40, height: 40, borderRadius: 10, margin: '3px auto',
+                    background: location.pathname === '/ai-command-center' ? 'rgba(167,139,250,0.2)' : 'rgba(167,139,250,0.08)',
+                    border: '1px solid rgba(167,139,250,0.25)',
+                    color: '#a78bfa', textDecoration: 'none',
+                  }}
+                >
+                  <Brain size={17} />
+                </NavLink>
+              </>
             ) : (
-              <NavLink to="/admin"
-                className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`}
-                style={{ marginBottom: 2, background: location.pathname === '/admin' ? 'rgba(129,140,248,0.15)' : 'rgba(129,140,248,0.06)', border: '1px solid rgba(129,140,248,0.2)' }}
-              >
-                <Shield size={17} color="#818cf8" />
-                <span style={{ color: '#818cf8' }}>Admin Panel</span>
-                {location.pathname === '/admin' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#818cf8' }} />}
-              </NavLink>
+              <>
+                <NavLink to="/admin"
+                  className={`sidebar-link ${location.pathname === '/admin' ? 'active' : ''}`}
+                  style={{ marginBottom: 2, background: location.pathname === '/admin' ? 'rgba(129,140,248,0.15)' : 'rgba(129,140,248,0.06)', border: '1px solid rgba(129,140,248,0.2)' }}
+                >
+                  <Shield size={17} color="#818cf8" />
+                  <span style={{ color: '#818cf8' }}>Admin Panel</span>
+                  {location.pathname === '/admin' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#818cf8' }} />}
+                </NavLink>
+                <NavLink to="/ai-command-center"
+                  className={`sidebar-link ${location.pathname === '/ai-command-center' ? 'active' : ''}`}
+                  style={{ marginBottom: 2, background: location.pathname === '/ai-command-center' ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)' }}
+                >
+                  <Brain size={17} color="#a78bfa" />
+                  <span style={{ color: '#a78bfa' }}>AI Command Center</span>
+                  {location.pathname === '/ai-command-center' && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5, color: '#a78bfa' }} />}
+                </NavLink>
+              </>
             )}
           </>
         )}

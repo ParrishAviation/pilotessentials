@@ -97,6 +97,17 @@ app.post('/api/chat-notify', async (req, res) => {
   }
 });
 
+// Route: POST /api/ai-command-center
+app.post('/api/ai-command-center', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/ai-command-center.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Route: POST /api/send-study-guide
 app.post('/api/send-study-guide', async (req, res) => {
   try {
