@@ -826,11 +826,15 @@ export default function AdminPanel() {
     <div style={{ minHeight: '100vh', background: '#060f1e', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{
-        padding: isMobile ? '12px 16px' : isTablet ? '14px 20px' : '18px 32px',
+        paddingTop: isMobile ? 'max(12px, env(safe-area-inset-top))' : isTablet ? 'max(14px, env(safe-area-inset-top))' : '18px',
+        paddingBottom: isMobile ? '12px' : isTablet ? '14px' : '18px',
+        paddingLeft: isMobile ? 'max(16px, env(safe-area-inset-left))' : isTablet ? 'max(20px, env(safe-area-inset-left))' : '32px',
+        paddingRight: isMobile ? 'max(16px, env(safe-area-inset-right))' : isTablet ? '20px' : '32px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
-        background: 'rgba(6,15,30,0.95)',
+        background: 'rgba(6,15,30,0.97)',
         display: 'flex', alignItems: 'center', gap: 16,
         backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         <button

@@ -23,9 +23,12 @@ export default function Sidebar({ onClose }) {
   const displayName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Pilot';
   const isAdmin = ADMIN_EMAILS.includes(authUser?.email);
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isIPad   = typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1024;
+
   return (
     <aside style={{
-      width: 240,
+      width: isIPad ? 200 : 240,
       minHeight: '100vh',
       background: 'rgba(6,15,30,0.97)',
       borderRight: '1px solid rgba(255,255,255,0.06)',
@@ -37,7 +40,12 @@ export default function Sidebar({ onClose }) {
       bottom: 0,
       zIndex: 100,
       backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       overflowY: 'auto',
+      /* iOS safe-area: sidebar extends behind notch/home bar */
+      paddingTop: isMobile ? 'env(safe-area-inset-top, 0px)' : 0,
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      paddingLeft: 'env(safe-area-inset-left, 0px)',
     }}>
       {/* Logo */}
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

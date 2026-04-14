@@ -104,16 +104,23 @@ export default function Layout() {
         .mobile-topbar   { display: none; }
         .main-content    { margin-left: 240px; }
 
+        /* iPad — narrower sidebar */
+        @media (min-width: 768px) and (max-width: 1024px) {
+          .main-content { margin-left: 200px; }
+        }
+
         @media (max-width: 767px) {
           .sidebar-desktop { display: none; }
           .mobile-topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(6,15,30,0.95);
+            /* iOS safe-area: pushes content below notch/status bar */
+            padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+            background: rgba(6,15,30,0.97);
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             position: sticky;
             top: 0;
             z-index: 50;

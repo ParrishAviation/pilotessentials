@@ -536,29 +536,91 @@ export default function CourseDetail() {
     : null;
   const chapterTitle = expandedModules.find(m => m.lessons.some(l => l.id === activeLesson?.id))?.title || '';
 
+  // Mobile sidebar state
+  const [lessonDrawerOpen, setLessonDrawerOpen] = useState(false);
+  const isMobileView = typeof window !== 'undefined' && window.innerWidth < 1024;
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  useEffect(() => {
+    const handler = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  const isNarrow = windowWidth < 1024; // phone + iPad
+
+  // Auto-close drawer when a lesson is selected on mobile
+  const handleSelectLesson = (lesson) => {
+    if (lesson.type === 'quiz') {
+      navigate(`/quiz/${courseId}/${lesson.id}`);
+    } else {
+      setActiveLesson(lesson);
+      if (isNarrow) setLessonDrawerOpen(false);
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+
+      {/* ── Mobile/iPad overlay backdrop ── */}
+      {isNarrow && lessonDrawerOpen && (
+        <div
+          onClick={() => setLessonDrawerOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 60,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+          }}
+        />
+      )}
+
       {/* Sidebar */}
       <div style={{
-        width: 320, flexShrink: 0,
-        background: 'rgba(6,15,30,0.8)',
+        width: 300, flexShrink: 0,
+        background: 'rgba(6,15,30,0.98)',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         overflow: 'auto',
         display: 'flex', flexDirection: 'column',
+        // On narrow screens: fixed drawer that slides in from left
+        ...(isNarrow ? {
+          position: 'fixed',
+          top: 0, left: 0, bottom: 0,
+          zIndex: 70,
+          width: Math.min(300, windowWidth * 0.85),
+          transform: lessonDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          boxShadow: lessonDrawerOpen ? '4px 0 32px rgba(0,0,0,0.6)' : 'none',
+        } : {}),
       }}>
         {/* Course Header */}
         <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <button
-            onClick={() => navigate('/courses')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              color: '#64748b', fontSize: 13, fontWeight: 500,
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              marginBottom: 14,
-            }}
-          >
-            <ChevronLeft size={16} /> Back to Courses
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <button
+              onClick={() => navigate('/courses')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                color: '#64748b', fontSize: 13, fontWeight: 500,
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              }}
+            >
+              <ChevronLeft size={16} /> Back to Courses
+            </button>
+            {/* Close button — only on narrow screens */}
+            {isNarrow && (
+              <button
+                onClick={() => setLessonDrawerOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, width: 32, height: 32,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: '#94a3b8', flexShrink: 0,
+                }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{
               width: 42, height: 42, borderRadius: 12, flexShrink: 0,
@@ -595,13 +657,7 @@ export default function CourseDetail() {
               activeLesson={activeLesson}
               hiddenLessons={hiddenLessons}
               isAdmin={isAdmin}
-              onSelectLesson={(lesson) => {
-                if (lesson.type === 'quiz') {
-                  navigate(`/quiz/${courseId}/${lesson.id}`);
-                } else {
-                  setActiveLesson(lesson);
-                }
-              }}
+              onSelectLesson={handleSelectLesson}
               onDeleteLesson={handleDeleteLesson}
               onRestoreLesson={handleRestoreLesson}
             />
@@ -610,7 +666,7 @@ export default function CourseDetail() {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, overflow: 'auto', background: '#060f1e' }}>
+      <div style={{ flex: 1, overflow: 'auto', background: '#060f1e', minWidth: 0 }}>
         {!isEnrolled ? (
           /* Enroll CTA */
           <div style={{ padding: '60px 48px', maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
@@ -648,7 +704,40 @@ export default function CourseDetail() {
           </div>
         ) : (
           /* Lesson Content */
-          <div style={{ padding: '32px 40px', maxWidth: 900 }}>
+          <div style={{ padding: isNarrow ? '0 0 40px' : '32px 40px', maxWidth: 900 }}>
+            {/* Narrow: sticky top bar with lesson title + open drawer button */}
+            {isNarrow && (
+              <div style={{
+                position: 'sticky', top: 0, zIndex: 20,
+                background: 'rgba(6,15,30,0.97)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                padding: '10px 16px',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <button
+                  onClick={() => setLessonDrawerOpen(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '8px 14px', borderRadius: 10,
+                    background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)',
+                    color: '#38bdf8', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  <BookOpen size={14} />
+                  Lessons
+                </button>
+                <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  {activeLesson?._displayTitle || activeLesson?.title || course.title}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', flexShrink: 0 }}>
+                  {pct}%
+                </div>
+              </div>
+            )}
+            <div style={{ padding: isNarrow ? '20px 16px' : 0 }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeLesson?.id}
@@ -854,6 +943,7 @@ export default function CourseDetail() {
                 );
               })()}
             </div>
+            </div>{/* end isNarrow padding wrapper */}
           </div>
         )}
       </div>
