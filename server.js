@@ -64,6 +64,17 @@ app.post('/api/study-guide', async (req, res) => {
   }
 });
 
+// Route: POST /api/setup-account
+app.post('/api/setup-account', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/setup-account.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Route: POST /api/notify-signup
 app.post('/api/notify-signup', async (req, res) => {
   try {

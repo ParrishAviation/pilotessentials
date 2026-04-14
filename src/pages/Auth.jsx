@@ -73,25 +73,22 @@ export default function Auth() {
         if (!fullName.trim()) { setError('Please enter your full name.'); setLoading(false); return; }
         if (password.length < 6) { setError('Password must be at least 6 characters.'); setLoading(false); return; }
         if (password !== confirmPassword) { setError('Passwords do not match.'); setLoading(false); return; }
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          // If user already exists (invited by Supabase), try signing them in instead
-          if (error.message?.toLowerCase().includes('already registered') || error.message?.toLowerCase().includes('already been registered')) {
-            const { error: signInErr } = await signIn(email, password);
-            if (signInErr) throw signInErr;
-            navigate('/app', { replace: true });
-            return;
-          }
-          throw error;
+
+        // Use server-side admin API to set password + confirm email in one step
+        const setupRes = await fetch('/api/setup-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, fullName }),
+        });
+        const setupData = await setupRes.json();
+        if (!setupRes.ok || setupData.error) {
+          throw new Error(setupData.error || 'Failed to set up account.');
         }
-        // Auto sign in after setup
+
+        // Now sign in — email is confirmed server-side so this will succeed
         const { error: signInErr } = await signIn(email, password);
-        if (!signInErr) {
-          navigate('/app', { replace: true });
-        } else {
-          setSuccess('Account created! Please sign in to continue.');
-          switchMode('signin');
-        }
+        if (signInErr) throw signInErr;
+        navigate('/app', { replace: true });
       }
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
