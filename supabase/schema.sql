@@ -260,3 +260,25 @@ create policy "Admins can manage quiz overrides" on public.quiz_overrides
 
 -- Migration: add figure column to existing quiz_overrides table (run if table already exists)
 alter table public.quiz_overrides add column if not exists figure integer default null;
+
+-- ============================================================
+-- Study Guides — AI-generated per-lesson study guides (cached)
+-- ============================================================
+create table if not exists public.study_guides (
+  id uuid default gen_random_uuid() primary key,
+  lesson_id text not null unique,
+  course_id text not null,
+  content text not null,
+  model text,
+  generated_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.study_guides enable row level security;
+
+-- Anyone authenticated can read study guides
+create policy "Anyone can read study guides" on public.study_guides
+  for select using (true);
+
+-- Only service role (server-side) can insert/update
+create policy "Service role can manage study guides" on public.study_guides
+  for all using (true);
