@@ -229,6 +229,12 @@ export default function AdminPanel() {
   const [editForm, setEditForm] = useState(null);
   const [quizSaving, setQuizSaving] = useState(false);
   const [quizMsg, setQuizMsg] = useState(null);
+  const [figureFilter, setFigureFilter] = useState('all'); // 'all' | 'with_figure' | 'without_figure'
+
+  const referencesFigure = (text = '') => {
+    const lower = text.toLowerCase();
+    return /\bfig(ure)?\.?\s*\d/i.test(text) || lower.includes('refer to figure') || lower.includes('referring to figure') || lower.includes('see figure') || /figure [a-z0-9\-]+/i.test(text);
+  };
 
   // New question state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -954,7 +960,7 @@ export default function AdminPanel() {
                 return (
                   <button
                     key={key}
-                    onClick={() => { setSelectedQuizKey(key); setEditingQ(null); setEditForm(null); if (isMobile) setMobileView('detail'); }}
+                    onClick={() => { setSelectedQuizKey(key); setEditingQ(null); setEditForm(null); setFigureFilter('all'); if (isMobile) setMobileView('detail'); }}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                       padding: isTouch ? '13px 10px' : '8px 10px',
@@ -1008,7 +1014,12 @@ export default function AdminPanel() {
                 const addedQuestions = Object.entries(overrides[selectedQuizKey] || {})
                   .filter(([id]) => !baseIds.has(Number(id)))
                   .map(([id, data]) => ({ id: Number(id), ...data, _isNew: true }));
-                const questions = baseQuestions;
+                const allBaseQuestions = baseQuestions;
+                const withFigCount = allBaseQuestions.filter(q => referencesFigure(q.question)).length;
+                const withoutFigCount = allBaseQuestions.length - withFigCount;
+                const questions = figureFilter === 'all' ? allBaseQuestions
+                  : figureFilter === 'with_figure' ? allBaseQuestions.filter(q => referencesFigure(q.question))
+                  : allBaseQuestions.filter(q => !referencesFigure(q.question));
                 return (
                   <div>
                     <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
@@ -1017,7 +1028,7 @@ export default function AdminPanel() {
                           {bank.title}
                         </h2>
                         <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>
-                          {questions.length + addedQuestions.length} questions total · {addedQuestions.length} added · {Object.keys(overrides[selectedQuizKey] || {}).filter(id => baseIds.has(Number(id))).length} edited
+                          {allBaseQuestions.length + addedQuestions.length} questions total · {addedQuestions.length} added · {Object.keys(overrides[selectedQuizKey] || {}).filter(id => baseIds.has(Number(id))).length} edited
                         </p>
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -1048,6 +1059,37 @@ export default function AdminPanel() {
                           <Plus size={13} /> Add Question
                         </button>
                       </div>
+                    </div>
+
+                    {/* ── FIGURE FILTER PILLS ── */}
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.7, marginRight: 4 }}>
+                        Filter:
+                      </span>
+                      {[
+                        { key: 'all', label: `All (${allBaseQuestions.length})` },
+                        { key: 'with_figure', label: `📊 References Figure (${withFigCount})` },
+                        { key: 'without_figure', label: `No Figure (${withoutFigCount})` },
+                      ].map(f => (
+                        <button
+                          key={f.key}
+                          onClick={() => setFigureFilter(f.key)}
+                          style={{
+                            padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                            background: figureFilter === f.key ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${figureFilter === f.key ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                            color: figureFilter === f.key ? '#38bdf8' : '#64748b',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                      {figureFilter !== 'all' && (
+                        <span style={{ fontSize: 12, color: '#475569', marginLeft: 4 }}>
+                          — showing {questions.length} of {allBaseQuestions.length}
+                        </span>
+                      )}
                     </div>
 
                     {/* ── PARSE FROM FILE ZONE ── */}
