@@ -49,12 +49,19 @@ export default async function handler(req, res) {
     }
 
     // User exists — update password, confirm email, set name
+    const resolvedName = fullName || existing.user_metadata?.full_name || '';
     const { error: updateError } = await supabase.auth.admin.updateUserById(existing.id, {
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName || existing.user_metadata?.full_name || '' },
+      user_metadata: { full_name: resolvedName },
     });
     if (updateError) throw updateError;
+
+    // Ensure a profiles row exists (trigger only fires on new auth.users inserts)
+    await supabase.from('profiles').upsert(
+      { id: existing.id, full_name: resolvedName },
+      { onConflict: 'id', ignoreDuplicates: false }
+    );
 
     return res.status(200).json({ success: true, userId: existing.id });
   } catch (err) {
