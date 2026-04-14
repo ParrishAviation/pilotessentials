@@ -86,6 +86,17 @@ app.post('/api/notify-signup', async (req, res) => {
   }
 });
 
+// Route: POST /api/send-study-guide
+app.post('/api/send-study-guide', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/send-study-guide.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Route: POST /api/chat (Captain AI)
 app.post('/api/chat', async (req, res) => {
   try {

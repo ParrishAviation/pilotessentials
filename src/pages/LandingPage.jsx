@@ -902,6 +902,312 @@ function FAQSection() {
   );
 }
 
+// ─── Study Guide CTA ──────────────────────────────────────────────────────────
+const PROGRAMS = [
+  'Private Pilot Certificate',
+  'Instrument Rating',
+  'Commercial Pilot Certificate',
+  'Multi-Engine Rating',
+  'CFI / Flight Instructor',
+  'Recreational Pilot',
+  'Sport Pilot',
+  'Other / Just Exploring',
+];
+
+function StudyGuideCTA() {
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', program: '' });
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.program) {
+      setErrorMsg('Please fill in all fields.');
+      setStatus('error');
+      return;
+    }
+    setStatus('loading');
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/send-study-guide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatus('success');
+      } else {
+        setErrorMsg(data.error || 'Something went wrong. Please try again.');
+        setStatus('error');
+      }
+    } catch {
+      setErrorMsg('Network error. Please try again.');
+      setStatus('error');
+    }
+  };
+
+  return (
+    <section id="study-guide" style={{ padding: '100px 24px', background: 'linear-gradient(180deg, #060f1e 0%, #0a1628 100%)' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: 48,
+          alignItems: 'center',
+        }}>
+          {/* Left: copy */}
+          <motion.div
+            initial={{ opacity: 0, x: -24 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+          >
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)',
+              borderRadius: 100, padding: '6px 14px', marginBottom: 20,
+            }}>
+              <FileText size={13} color="#38bdf8" />
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 0.8 }}>Free Download</span>
+            </div>
+
+            <h2 style={{
+              fontSize: 40, fontWeight: 900, color: '#f1f5f9',
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: '-0.5px', lineHeight: 1.15, marginBottom: 18,
+            }}>
+              Get Your Free<br />
+              <span style={{ background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Private Pilot Study Guide
+              </span>
+            </h2>
+
+            <p style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.7, marginBottom: 28 }}>
+              Download our comprehensive Private Pilot Study Guide — covering aerodynamics, weather, navigation, airspace, and FAA regulations. Everything you need to pass your knowledge test.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { icon: '📖', text: 'Aerodynamics & aircraft systems explained simply' },
+                { icon: '🌦️', text: 'Weather theory, METARs, TAFs, and hazards' },
+                { icon: '🗺️', text: 'Navigation, charts, and airspace regulations' },
+                { icon: '✅', text: 'FAA knowledge test prep and checkride tips' },
+              ].map(({ icon, text }) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                  <span style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.5 }}>{text}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Right: form */}
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            viewport={{ once: true }}
+          >
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 24, padding: '36px 32px',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
+            }}>
+              {status === 'success' ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  style={{ textAlign: 'center', padding: '20px 0' }}
+                >
+                  <div style={{
+                    width: 72, height: 72, borderRadius: '50%',
+                    background: 'rgba(52,211,153,0.12)',
+                    border: '2px solid rgba(52,211,153,0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 32, margin: '0 auto 20px',
+                  }}>✅</div>
+                  <h3 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', marginBottom: 10, fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Check your inbox!
+                  </h3>
+                  <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.7, margin: '0 0 8px' }}>
+                    Your Private Pilot Study Guide is on its way to <strong style={{ color: '#38bdf8' }}>{form.email}</strong>.
+                  </p>
+                  <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                    Didn't receive it? Check your spam folder or email us at{' '}
+                    <a href="mailto:support@mypilotessentials.com" style={{ color: '#38bdf8', textDecoration: 'none' }}>
+                      support@mypilotessentials.com
+                    </a>
+                  </p>
+                </motion.div>
+              ) : (
+                <form onSubmit={handleSubmit}>
+                  <div style={{ marginBottom: 20 }}>
+                    <h3 style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', margin: '0 0 6px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                      Get the free study guide
+                    </h3>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                      We'll email it to you instantly — no spam, ever.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={form.firstName}
+                        onChange={handleChange}
+                        placeholder="Jane"
+                        required
+                        style={{
+                          width: '100%', padding: '11px 14px', borderRadius: 10,
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#f1f5f9', fontSize: 14, outline: 'none',
+                          boxSizing: 'border-box',
+                          transition: 'border-color 0.2s',
+                        }}
+                        onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.5)'}
+                        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={form.lastName}
+                        onChange={handleChange}
+                        placeholder="Smith"
+                        required
+                        style={{
+                          width: '100%', padding: '11px 14px', borderRadius: 10,
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#f1f5f9', fontSize: 14, outline: 'none',
+                          boxSizing: 'border-box',
+                          transition: 'border-color 0.2s',
+                        }}
+                        onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.5)'}
+                        onBlur={e => e.target.style.borderColor = 'rgba(255,255,248,0.1)'}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="jane@example.com"
+                      required
+                      style={{
+                        width: '100%', padding: '11px 14px', borderRadius: 10,
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#f1f5f9', fontSize: 14, outline: 'none',
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.2s',
+                      }}
+                      onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.5)'}
+                      onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Program of Study
+                    </label>
+                    <select
+                      name="program"
+                      value={form.program}
+                      onChange={handleChange}
+                      required
+                      style={{
+                        width: '100%', padding: '11px 14px', borderRadius: 10,
+                        background: '#0d1f35',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: form.program ? '#f1f5f9' : '#64748b',
+                        fontSize: 14, outline: 'none',
+                        boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.2s',
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 14px center',
+                        paddingRight: 36,
+                      }}
+                      onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.5)'}
+                      onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                    >
+                      <option value="" disabled>Select your program...</option>
+                      {PROGRAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+
+                  {status === 'error' && (
+                    <div style={{
+                      padding: '10px 14px', borderRadius: 8, marginBottom: 14,
+                      background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)',
+                      fontSize: 13, color: '#fca5a5',
+                    }}>
+                      {errorMsg}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={status === 'loading'}
+                    style={{
+                      width: '100%', padding: '14px 0', borderRadius: 12, border: 'none',
+                      background: status === 'loading'
+                        ? 'rgba(14,165,233,0.5)'
+                        : 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                      color: '#fff', fontWeight: 800, fontSize: 15,
+                      cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      boxShadow: '0 6px 20px rgba(14,165,233,0.3)',
+                      transition: 'all 0.2s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    }}
+                  >
+                    {status === 'loading' ? (
+                      <>
+                        <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        Sending...
+                      </>
+                    ) : (
+                      <>✈️ Email Me the Study Guide</>
+                    )}
+                  </button>
+
+                  <p style={{ textAlign: 'center', fontSize: 11, color: '#334155', margin: '12px 0 0' }}>
+                    No spam. Unsubscribe anytime.
+                  </p>
+                </form>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Bottom CTA ───────────────────────────────────────────────────────────────
 function BottomCTA({ onLogin, onCheckout }) {
   return (
@@ -1079,6 +1385,7 @@ export default function LandingPage() {
       <FeaturesSection onLogin={goToLogin} />
       <PricingSection onLogin={goToLogin} onCheckout={goToCheckout} />
       <FAQSection />
+      <StudyGuideCTA />
       <BottomCTA onLogin={goToLogin} onCheckout={goToCheckout} />
       <Footer onLogin={goToLogin} />
     </div>
