@@ -128,7 +128,9 @@ async function runAll() {
       console.log(`  ${icon} ${progress} ${r.lessonId}${suffix}`);
     });
 
-    if (i + CONCURRENCY < allLessonIds.length) {
+    // Only throttle if we actually generated (used API tokens). Cached hits are free.
+    const lastResult = batchResults[batchResults.length - 1];
+    if (i + CONCURRENCY < allLessonIds.length && lastResult?.status === 'generated') {
       process.stdout.write(`  ... waiting ${DELAY_MS/1000}s\r`);
       await sleep(DELAY_MS);
     }
