@@ -7,6 +7,7 @@ import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { track } from '../lib/analytics';
+import ExitSurvey from '../components/ExitSurvey';
 
 // Merge Supabase overrides on top of static quiz bank questions
 function applyOverrides(questions, overridesMap) {
@@ -172,7 +173,7 @@ function ProgressDots({ total, current, answers }) {
   );
 }
 
-function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, lessonId, questions, selectedAnswers, pastAttempts, xpEarned }) {
+function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, continueLabel, courseId, lessonId, questions, selectedAnswers, pastAttempts, xpEarned }) {
   const navigate = useNavigate();
   const pct = Math.round((score / total) * 100);
   const isPerfect = pct === 100;
@@ -318,7 +319,7 @@ function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, l
             fontSize: 14, fontWeight: 700, color: '#fff',
           }}
         >
-          {isPassed ? (
+          {continueLabel ? continueLabel : isPassed ? (
             <><ArrowRight size={15} /> Continue Learning</>
           ) : (
             <><Home size={15} /> Back to Course</>
@@ -577,6 +578,7 @@ export default function Quiz() {
   const [pastAttempts, setPastAttempts] = useState(null); // null = loading, [] = none
   const [started, setStarted] = useState(false);
   const [quizXpEarned, setQuizXpEarned] = useState(0);
+  const [showSurvey, setShowSurvey] = useState(false);
 
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -675,6 +677,11 @@ export default function Quiz() {
       });
       // Refresh history after a short delay so the new attempt is in DB
       setTimeout(refreshAttempts, 1500);
+
+      // Show exit survey after final test (with a short delay for the score screen to settle)
+      if (isFinalTest) {
+        setTimeout(() => setShowSurvey(true), 2200);
+      }
     } else {
       setCurrentQ(q => q + 1);
       setSelected(null);
@@ -858,7 +865,11 @@ export default function Quiz() {
                   total={questions.length}
                   quizTitle={quizData.title}
                   onRetry={handleReset}
-                  onContinue={() => navigate(`/course/${courseId}`)}
+                  onContinue={isFinalTest
+                    ? () => setShowSurvey(true)
+                    : () => navigate(`/course/${courseId}`)
+                  }
+                  continueLabel={isFinalTest ? 'Share Feedback ✈️' : null}
                   courseId={courseId}
                   lessonId={lessonId}
                   questions={questions}
@@ -1002,6 +1013,15 @@ export default function Quiz() {
           </AnimatePresence>
         </div>
       </div>
+
+      <ExitSurvey
+        isOpen={showSurvey}
+        onClose={() => setShowSurvey(false)}
+        onComplete={() => navigate(`/course/${courseId}`)}
+        courseId={courseId}
+        score={score}
+        total={questions?.length || 0}
+      />
     </div>
   );
 }
