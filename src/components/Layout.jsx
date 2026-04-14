@@ -7,15 +7,28 @@ import AIChat from './AIChat';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const COLLAPSED_WIDTH = 56;
+const EXPANDED_WIDTH  = 240;
+const IPAD_WIDTH      = 200;
+
 export default function Layout() {
   const location = useLocation();
   const hideAIChat = location.pathname === '/chatroom';
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);         // mobile overlay
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('skyace_sidebar_collapsed') === 'true'; } catch { return false; }
+  });
 
-  // Close sidebar on route change (mobile nav tap)
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
+  const toggleCollapsed = () => {
+    setCollapsed(v => {
+      const next = !v;
+      try { localStorage.setItem('skyace_sidebar_collapsed', String(next)); } catch {}
+      return next;
+    });
+  };
+
+  // Close mobile sidebar on route change
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   // Close on resize to desktop
   useEffect(() => {
@@ -24,41 +37,35 @@ export default function Layout() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const desktopMargin = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#060f1e' }}>
 
       {/* Desktop sidebar — always visible ≥768px */}
       <div className="sidebar-desktop">
-        <Sidebar />
+        <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
       </div>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay backdrop */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div
             key="overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setSidebarOpen(false)}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 199,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(2px)',
-            }}
+            style={{ position: 'fixed', inset: 0, zIndex: 199, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
           />
         )}
       </AnimatePresence>
 
-      {/* Mobile sidebar — slides in */}
+      {/* Mobile sidebar — slides in from left */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div
             key="mobile-sidebar"
-            initial={{ x: -260 }}
-            animate={{ x: 0 }}
-            exit={{ x: -260 }}
+            initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}
             transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             style={{ position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 200 }}
             className="sidebar-mobile"
@@ -69,26 +76,27 @@ export default function Layout() {
       </AnimatePresence>
 
       {/* Main content */}
-      <main className="main-content" style={{ flex: 1, minHeight: '100vh', position: 'relative' }}>
+      <main
+        className="main-content"
+        style={{
+          flex: 1, minHeight: '100vh', position: 'relative',
+          marginLeft: desktopMargin,
+          transition: 'margin-left 0.25s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
 
         {/* Mobile top bar */}
         <div className="mobile-topbar">
           <button
             onClick={() => setSidebarOpen(o => !o)}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 10, width: 40, height: 40,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#f1f5f9', flexShrink: 0,
-            }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#f1f5f9', flexShrink: 0 }}
           >
             <Menu size={20} />
           </button>
           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 18, color: '#f1f5f9', letterSpacing: '-0.5px' }}>
             Pilot Essentials
           </span>
-          <div style={{ width: 40 }} />{/* spacer to centre title */}
+          <div style={{ width: 40 }} />
         </div>
 
         <Outlet />
@@ -102,11 +110,13 @@ export default function Layout() {
         .sidebar-desktop { display: block; }
         .sidebar-mobile  { display: block; }
         .mobile-topbar   { display: none; }
-        .main-content    { margin-left: 240px; }
 
-        /* iPad — narrower sidebar */
+        /* Desktop: margin is controlled inline via JS (collapsed vs expanded) */
+        .main-content { /* margin-left set inline */ }
+
+        /* iPad — use expanded width (collapse still works) */
         @media (min-width: 768px) and (max-width: 1024px) {
-          .main-content { margin-left: 200px; }
+          /* sidebar width handled by Sidebar.jsx isIPad check */
         }
 
         @media (max-width: 767px) {
@@ -115,7 +125,6 @@ export default function Layout() {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            /* iOS safe-area: pushes content below notch/status bar */
             padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
             background: rgba(6,15,30,0.97);
             border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -125,7 +134,7 @@ export default function Layout() {
             top: 0;
             z-index: 50;
           }
-          .main-content { margin-left: 0; }
+          .main-content { margin-left: 0 !important; }
         }
       `}</style>
     </div>
