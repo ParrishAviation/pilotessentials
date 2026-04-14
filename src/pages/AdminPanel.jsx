@@ -331,12 +331,17 @@ export default function AdminPanel() {
   const loadStudents = async () => {
     setStudentsLoading(true);
     try {
-      const [profilesRes, enrolledRes, lessonsRes, quizScoresRes, purchasesRes] = await Promise.all([
+      const [profilesRes, enrolledRes, lessonsRes, quizScoresRes, purchasesRes, authUsersRes] = await Promise.all([
         supabase.from('profiles').select('id, username, full_name, xp, level, streak, created_at').order('xp', { ascending: false }),
         supabase.from('enrolled_courses').select('user_id, course_id, enrolled_at'),
         supabase.from('completed_lessons').select('user_id, lesson_id, completed_at'),
         supabase.from('quiz_scores').select('user_id, quiz_id, score, total, percent, is_perfect, updated_at'),
         supabase.from('purchases').select('user_id, plan, amount_cents, created_at'),
+        fetch('/api/admin-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminEmail: user?.email }),
+        }).then(r => r.json()).catch(() => ({ users: [] })),
       ]);
 
       const profiles = profilesRes.data || [];
@@ -344,6 +349,14 @@ export default function AdminPanel() {
       const lessons = lessonsRes.data || [];
       const quizScores = quizScoresRes.data || [];
       const purchases = purchasesRes.data || [];
+
+      // Build email lookup from auth users
+      const emailMap = {};
+      (authUsersRes.users || []).forEach(u => { emailMap[u.id] = u.email; });
+
+      // Also build a set of auth user IDs that have NO profile row yet
+      const profileIds = new Set(profiles.map(p => p.id));
+      const orphanAuthUsers = (authUsersRes.users || []).filter(u => !profileIds.has(u.id));
 
       // Build per-user maps
       const enrolledMap = {};
@@ -357,13 +370,31 @@ export default function AdminPanel() {
 
       const enriched = profiles.map(p => ({
         ...p,
+        email: emailMap[p.id] || null,
         enrolledCourses: enrolledMap[p.id] || [],
         completedLessons: lessonsMap[p.id] || [],
         quizScores: scoresMap[p.id] || [],
         purchases: purchasesMap[p.id] || [],
       }));
 
-      setStudents(enriched);
+      // Add orphan auth users (have auth account but no profile row)
+      const orphans = orphanAuthUsers.map(u => ({
+        id: u.id,
+        full_name: null,
+        username: null,
+        email: u.email,
+        xp: null,
+        level: null,
+        streak: null,
+        created_at: u.created_at,
+        _orphan: true,
+        enrolledCourses: enrolledMap[u.id] || [],
+        completedLessons: lessonsMap[u.id] || [],
+        quizScores: scoresMap[u.id] || [],
+        purchases: purchasesMap[u.id] || [],
+      }));
+
+      setStudents([...enriched, ...orphans]);
     } catch (err) {
       console.error('Failed to load students:', err);
       setStudents([]);
@@ -1710,7 +1741,8 @@ export default function AdminPanel() {
             const q = studentSearch.toLowerCase();
             return (
               (s.full_name || '').toLowerCase().includes(q) ||
-              (s.username || '').toLowerCase().includes(q)
+              (s.username || '').toLowerCase().includes(q) ||
+              (s.email || '').toLowerCase().includes(q)
             );
           });
 
@@ -1868,10 +1900,17 @@ export default function AdminPanel() {
                             fontSize: 13, fontWeight: 700, color: '#fff',
                           }}>{initials}</div>
 
-                          {/* Name + username */}
+                          {/* Name + username + email */}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {displayName}
+                              {student._orphan && (
+                                <span style={{
+                                  marginLeft: 8, padding: '2px 8px', borderRadius: 20,
+                                  background: 'rgba(239,68,68,0.12)', color: '#f87171',
+                                  fontSize: 10, fontWeight: 700,
+                                }}>NO PROFILE</span>
+                              )}
                               {latestPurchase && (
                                 <span style={{
                                   marginLeft: 8, padding: '2px 8px', borderRadius: 20,
@@ -1883,8 +1922,13 @@ export default function AdminPanel() {
                                 </span>
                               )}
                             </div>
+                            {student.email && (
+                              <div style={{ fontSize: 11, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {student.email}
+                              </div>
+                            )}
                             {student.username && student.full_name && (
-                              <div style={{ fontSize: 12, color: '#475569' }}>@{student.username}</div>
+                              <div style={{ fontSize: 11, color: '#334155' }}>@{student.username}</div>
                             )}
                           </div>
 
@@ -1935,6 +1979,8 @@ export default function AdminPanel() {
                               <div>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>Overview</div>
                                 {[
+                                  { label: 'Email', value: student.email || '—', show: true },
+                                  { label: 'User ID', value: student.id?.slice(0, 8) + '…', show: true },
                                   { label: 'Streak', value: `🔥 ${student.streak || 0} days`, show: true },
                                   { label: 'Lessons Done', value: `${student.completedLessons.length} / ${totalLessons}`, show: true },
                                   { label: 'Progress', value: `${lessonPct}%`, show: true },

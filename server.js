@@ -97,6 +97,17 @@ app.post('/api/send-study-guide', async (req, res) => {
   }
 });
 
+// Route: POST /api/admin-users
+app.post('/api/admin-users', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/admin-users.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Route: POST /api/delete-user
 app.post('/api/delete-user', async (req, res) => {
   try {
