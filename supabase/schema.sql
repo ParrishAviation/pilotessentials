@@ -19,6 +19,9 @@ alter table public.profiles enable row level security;
 create policy "Users can view own profile" on public.profiles for select using (auth.uid() = id);
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
 create policy "Users can insert own profile" on public.profiles for insert with check (auth.uid() = id);
+create policy "Admins can view all profiles" on public.profiles for select using (
+  auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+);
 
 -- Enrolled Courses
 create table if not exists public.enrolled_courses (
@@ -30,6 +33,9 @@ create table if not exists public.enrolled_courses (
 );
 alter table public.enrolled_courses enable row level security;
 create policy "Users manage own enrollments" on public.enrolled_courses for all using (auth.uid() = user_id);
+create policy "Admins can view all enrollments" on public.enrolled_courses for select using (
+  auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+);
 
 -- Completed Lessons
 create table if not exists public.completed_lessons (
@@ -42,6 +48,9 @@ create table if not exists public.completed_lessons (
 );
 alter table public.completed_lessons enable row level security;
 create policy "Users manage own completed lessons" on public.completed_lessons for all using (auth.uid() = user_id);
+create policy "Admins can view all completed lessons" on public.completed_lessons for select using (
+  auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+);
 
 -- Completed Modules
 create table if not exists public.completed_modules (
@@ -79,6 +88,9 @@ create table if not exists public.quiz_scores (
 );
 alter table public.quiz_scores enable row level security;
 create policy "Users manage own quiz scores" on public.quiz_scores for all using (auth.uid() = user_id);
+create policy "Admins can view all quiz scores" on public.quiz_scores for select using (
+  auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+);
 
 -- Earned Badges
 create table if not exists public.earned_badges (
@@ -200,6 +212,10 @@ create table if not exists public.purchases (
 alter table public.purchases enable row level security;
 create policy "Users can view own purchases" on public.purchases
   for select using (auth.uid() = user_id);
+create policy "Admins can view all purchases" on public.purchases
+  for select using (
+    auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+  );
 -- Only the service role (server-side) can insert purchases
 create policy "Service role can insert purchases" on public.purchases
   for insert with check (true);
