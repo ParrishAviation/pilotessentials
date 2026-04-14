@@ -2316,17 +2316,32 @@ QUIZ_BANK['ppl-final-test-bank'] = {
 };
 
 export const BADGES = [
+  // Onboarding
   { id: 'first-flight', icon: '🛫', title: 'First Flight', description: 'Complete your first lesson', xpRequired: 0, lessonsRequired: 1 },
-  { id: 'sky-student', icon: '📚', title: 'Sky Student', description: 'Complete 10 lessons', xpRequired: 0, lessonsRequired: 10 },
-  { id: 'quiz-ace', icon: '🎯', title: 'Quiz Ace', description: 'Score 100% on any quiz', xpRequired: 0, perfect: true },
+  { id: 'first-quiz', icon: '✏️', title: 'First Solo Quiz', description: 'Take your first quiz', xpRequired: 0, quizRequired: 1 },
+  // Consistency / Streaks
   { id: 'on-fire', icon: '🔥', title: 'On Fire', description: 'Maintain a 7-day streak', xpRequired: 0, streakRequired: 7 },
+  { id: 'unstoppable', icon: '⚡', title: 'Unstoppable', description: 'Maintain a 14-day streak', xpRequired: 0, streakRequired: 14 },
+  { id: 'comeback-kid', icon: '🔄', title: 'Comeback Kid', description: 'Return after a break and train again', xpRequired: 0, streakComeback: true },
+  // Lesson milestones
+  { id: 'sky-student', icon: '📚', title: 'Sky Student', description: 'Complete 10 lessons', xpRequired: 0, lessonsRequired: 10 },
+  { id: 'halfway', icon: '🛩️', title: 'Halfway There', description: 'Complete 50 lessons', xpRequired: 0, lessonsRequired: 50 },
+  // Quiz mastery
+  { id: 'quiz-ace', icon: '🎯', title: 'Quiz Ace', description: 'Score 100% on any quiz', xpRequired: 0, perfect: true },
+  { id: 'triple-ace', icon: '🏆', title: 'Triple Ace', description: 'Score 100% on 3 different quizzes', xpRequired: 0, perfectCount: 3 },
+  // Social / Chat
+  { id: 'wingman', icon: '🤝', title: 'Wingman', description: 'Post your first message in a chatroom', xpRequired: 0, chatRequired: 1 },
+  { id: 'copilot', icon: '💬', title: 'Co-Pilot', description: 'Post 10 messages in chatrooms', xpRequired: 0, chatRequired: 10 },
+  // Module completions
   { id: 'navigator', icon: '🗺️', title: 'Navigator', description: 'Complete the Navigation module', xpRequired: 0, moduleRequired: 'ppl-m4' },
   { id: 'weather-wizard', icon: '⛈️', title: 'Weather Wizard', description: 'Complete the Weather module', xpRequired: 0, moduleRequired: 'ppl-m3' },
   { id: 'rule-keeper', icon: '📋', title: 'Rule Keeper', description: 'Complete FAA Regulations module', xpRequired: 0, moduleRequired: 'ppl-m5' },
   { id: 'bonus-grinder', icon: '💪', title: 'Bonus Grinder', description: 'Complete the Bonus Practice module', xpRequired: 0, moduleRequired: 'ppl-m6' },
-  { id: 'xp-500', icon: '⚡', title: 'Power Up', description: 'Earn 500 XP', xpRequired: 500, lessonsRequired: 0 },
+  // XP tiers
+  { id: 'xp-500', icon: '🔋', title: 'Power Up', description: 'Earn 500 XP', xpRequired: 500, lessonsRequired: 0 },
   { id: 'xp-1000', icon: '💎', title: 'Diamond Pilot', description: 'Earn 1,000 XP', xpRequired: 1000, lessonsRequired: 0 },
   { id: 'xp-2500', icon: '👑', title: 'Ace Pilot', description: 'Earn 2,500 XP', xpRequired: 2500, lessonsRequired: 0 },
+  // Course completions
   { id: 'ppl-complete', icon: '🏅', title: 'Private Pilot Ready', description: 'Complete the full PPL course', xpRequired: 0, courseRequired: 'private-pilot' },
   { id: 'ifr-complete', icon: '🥈', title: 'Instrument Rated', description: 'Complete the IFR course', xpRequired: 0, courseRequired: 'instrument-rating' },
 ];

@@ -172,11 +172,12 @@ function ProgressDots({ total, current, answers }) {
   );
 }
 
-function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, lessonId, questions, selectedAnswers, pastAttempts }) {
+function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, lessonId, questions, selectedAnswers, pastAttempts, xpEarned }) {
   const navigate = useNavigate();
   const pct = Math.round((score / total) * 100);
   const isPerfect = pct === 100;
   const isPassed = pct >= 70;
+  const isStar = pct >= 80;
   const [showMissed, setShowMissed] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -186,111 +187,134 @@ function ScoreScreen({ score, total, quizTitle, onRetry, onContinue, courseId, l
     : [];
 
   const getGrade = () => {
-    if (pct === 100) return { label: 'Perfect!', icon: '🏆', color: '#f59e0b' };
-    if (pct >= 90) return { label: 'Excellent!', icon: '🎯', color: '#22c55e' };
-    if (pct >= 80) return { label: 'Great Job!', icon: '⭐', color: '#38bdf8' };
-    if (pct >= 70) return { label: 'Passed!', icon: '✅', color: '#818cf8' };
-    return { label: 'Try Again', icon: '📚', color: '#f87171' };
+    if (pct === 100) return { label: 'Perfect!', icon: '🏆', color: '#f59e0b', msg: "Flawless — you're a true aviator!" };
+    if (pct >= 90) return { label: 'Excellent!', icon: '🎯', color: '#22c55e', msg: 'Outstanding performance!' };
+    if (pct >= 80) return { label: 'Great Job!', icon: '⭐', color: '#38bdf8', msg: 'Strong result — keep it up!' };
+    if (pct >= 70) return { label: 'Passed!', icon: '✅', color: '#818cf8', msg: 'You passed. Review missed questions to improve.' };
+    return { label: 'Try Again', icon: '📚', color: '#f87171', msg: 'Review the material and give it another shot.' };
   };
 
   const grade = getGrade();
 
+  // Previous best for comparison
+  const prevBest = pastAttempts && pastAttempts.length > 1
+    ? pastAttempts.slice(1).reduce((b, a) => a.percent > b.percent ? a : b, pastAttempts[1])
+    : null;
+  const improved = prevBest && pct > prevBest.percent;
+  const improvement = prevBest ? pct - prevBest.percent : 0;
+
   return (
     <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
+      initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-      style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto' }}
+      transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+      style={{ textAlign: 'center', maxWidth: 520, margin: '0 auto' }}
     >
       {/* Score Circle */}
-      <div style={{ marginBottom: 32 }}>
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: 'spring', stiffness: 150 }}
-          style={{
-            width: 140, height: 140, borderRadius: '50%',
-            background: `radial-gradient(circle, ${grade.color}22 0%, transparent 70%)`,
-            border: `4px solid ${grade.color}`,
-            display: 'inline-flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 0 40px ${grade.color}40`,
-            marginBottom: 20,
-          }}
-        >
-          <div style={{ fontSize: 36 }}>{grade.icon}</div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: grade.color, fontFamily: "'Space Grotesk', sans-serif" }}>
-            {pct}%
-          </div>
-        </motion.div>
-        <h2 style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9', margin: '0 0 8px', fontFamily: "'Space Grotesk', sans-serif" }}>
-          {grade.label}
-        </h2>
-        <p style={{ fontSize: 15, color: '#94a3b8', margin: 0 }}>
-          You answered {score} out of {total} questions correctly
-        </p>
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.15, type: 'spring', stiffness: 180 }}
+        style={{
+          width: 148, height: 148, borderRadius: '50%',
+          background: `radial-gradient(circle, ${grade.color}28 0%, transparent 68%)`,
+          border: `4px solid ${grade.color}`,
+          display: 'inline-flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          boxShadow: `0 0 50px ${grade.color}50`,
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ fontSize: 38 }}>{grade.icon}</div>
+        <div style={{ fontSize: 30, fontWeight: 900, color: grade.color, fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1 }}>
+          {pct}%
+        </div>
+      </motion.div>
+
+      <h2 style={{ fontSize: 26, fontWeight: 800, color: '#f1f5f9', margin: '0 0 6px', fontFamily: "'Space Grotesk', sans-serif" }}>
+        {grade.label}
+      </h2>
+      <p style={{ fontSize: 14, color: '#94a3b8', margin: '0 0 20px' }}>
+        {grade.msg}
+      </p>
+
+      {/* XP earned + improvement pill row */}
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 24, flexWrap: 'wrap' }}>
+        {xpEarned > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.3, type: 'spring' }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 20,
+              background: 'rgba(245,158,11,0.15)',
+              border: '1px solid rgba(245,158,11,0.4)',
+            }}
+          >
+            <Zap size={14} color="#f59e0b" fill="#f59e0b" />
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "'Space Grotesk', sans-serif" }}>
+              +{xpEarned} XP earned
+            </span>
+          </motion.div>
+        )}
+        {improved && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '6px 14px', borderRadius: 20,
+              background: 'rgba(34,197,94,0.12)',
+              border: '1px solid rgba(34,197,94,0.3)',
+            }}
+          >
+            <span style={{ fontSize: 13, color: '#4ade80', fontWeight: 700 }}>↑ +{improvement}% from last attempt</span>
+          </motion.div>
+        )}
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 32 }}>
+      {/* Compact stats */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Correct', value: score, color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' },
-          { label: 'Incorrect', value: total - score, color: '#ef4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)' },
-          { label: 'Score', value: `${pct}%`, color: grade.color, bg: `${grade.color}15`, border: `${grade.color}40` },
+          { label: 'Correct', value: score, color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)' },
+          { label: 'Incorrect', value: total - score, color: '#f87171', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)' },
+          { label: 'Score', value: `${pct}%`, color: grade.color, bg: `${grade.color}12`, border: `${grade.color}35` },
         ].map(s => (
           <div key={s.label} style={{
-            flex: 1, padding: '16px 12px', borderRadius: 14,
+            flex: 1, padding: '13px 8px', borderRadius: 12,
             background: s.bg, border: `1px solid ${s.border}`,
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: s.color, fontFamily: "'Space Grotesk', sans-serif" }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: "'Space Grotesk', sans-serif" }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      {isPerfect && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '14px 20px', borderRadius: 14, marginBottom: 24,
-            background: 'rgba(245,158,11,0.12)',
-            border: '1px solid rgba(245,158,11,0.35)',
-          }}
-        >
-          <span style={{ fontSize: 24 }}>🏅</span>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>Badge Unlocked: Quiz Ace!</div>
-            <div style={{ fontSize: 12, color: '#92400e' }}>Perfect score — you're a true aviator</div>
-          </div>
-        </motion.div>
-      )}
-
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
         <button
           onClick={onRetry}
           style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            padding: '13px 20px', borderRadius: 12,
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            padding: '12px 16px', borderRadius: 12,
             background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}
         >
-          <RotateCcw size={15} /> Retry Quiz
+          <RotateCcw size={14} /> Retry
         </button>
         <motion.button
           whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.97 }}
           className={isPassed ? 'btn-primary' : 'btn-gold'}
           onClick={onContinue}
           style={{
             flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            padding: '13px 20px', borderRadius: 12,
+            padding: '12px 20px', borderRadius: 12,
             fontSize: 14, fontWeight: 700, color: '#fff',
           }}
         >
@@ -507,7 +531,7 @@ function buildFinalTest(courseId, count = 60) {
 export default function Quiz() {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
-  const { user, completeLesson, saveQuizScore } = useUser();
+  const { user, completeLesson, saveQuizScore, triggerConfetti } = useUser();
   const { user: authUser } = useAuth();
 
   const isFinalTest = lessonId === 'ppl-final-test' || lessonId === 'ppl-final-test-2';
@@ -552,6 +576,7 @@ export default function Quiz() {
 
   const [pastAttempts, setPastAttempts] = useState(null); // null = loading, [] = none
   const [started, setStarted] = useState(false);
+  const [quizXpEarned, setQuizXpEarned] = useState(0);
 
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -620,12 +645,21 @@ export default function Quiz() {
       const pct = Math.round((finalScore / questions.length) * 100);
       setScore(finalScore);
       setDone(true);
+
+      // Confetti on 80%+
+      if (pct >= 80) {
+        triggerConfetti(4000);
+      }
+
       if (!user.completedLessons.includes(lessonId)) {
         completeLesson(lessonId, lesson.xp);
-        saveQuizScore(lessonId, finalScore, questions.length, isPerfect);
-      } else {
-        saveQuizScore(lessonId, finalScore, questions.length, isPerfect);
       }
+      const xpResult = saveQuizScore(lessonId, finalScore, questions.length, isPerfect);
+      // saveQuizScore returns a promise that resolves to xpEarned
+      Promise.resolve(xpResult).then(earned => {
+        if (earned) setQuizXpEarned(earned);
+      });
+
       // Track quiz completion with wrong question IDs for miss-rate analysis
       const wrongQuestions = questions
         .map((q, i) => answers[i] === false ? (q.id || i) : null)
@@ -830,6 +864,7 @@ export default function Quiz() {
                   questions={questions}
                   selectedAnswers={selectedAnswers}
                   pastAttempts={pastAttempts || []}
+                  xpEarned={quizXpEarned}
                 />
               </motion.div>
             ) : (

@@ -412,6 +412,7 @@ export default function CourseDetail() {
   const [videoUrls, setVideoUrls] = useState({});
   const [hiddenLessons, setHiddenLessons] = useState(new Set());
   const [miniConfetti, setMiniConfetti] = useState([]);
+  const [showXpBurst, setShowXpBurst] = useState(false);
 
   const playCompleteSound = useCallback(() => {
     try {
@@ -507,6 +508,8 @@ export default function CourseDetail() {
   const handleCompleteLesson = () => {
     playCompleteSound();
     triggerMiniConfetti();
+    setShowXpBurst(true);
+    setTimeout(() => setShowXpBurst(false), 900);
     completeLesson(activeLesson.id, activeLesson.xp);
     track('lesson_complete', { lesson_id: activeLesson.id, course_id: courseId, xp: activeLesson.xp });
     // Check if module is complete (use expandedModules)
@@ -893,6 +896,28 @@ export default function CourseDetail() {
 
                     {/* Complete button */}
                     <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end', position: 'relative' }}>
+                      {/* XP float-up burst */}
+                      <AnimatePresence>
+                        {showXpBurst && (
+                          <motion.div
+                            key="xp-burst"
+                            initial={{ y: 0, opacity: 1, scale: 1 }}
+                            animate={{ y: -52, opacity: 0, scale: 1.2 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.75, ease: 'easeOut' }}
+                            style={{
+                              position: 'absolute', right: 80, bottom: 14,
+                              pointerEvents: 'none', zIndex: 20,
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              background: 'rgba(245,158,11,0.2)',
+                              border: '1px solid rgba(245,158,11,0.5)',
+                              borderRadius: 20, padding: '4px 12px',
+                            }}
+                          >
+                            <span style={{ fontSize: 13, fontWeight: 800, color: '#fbbf24' }}>+{activeLesson?.xp} XP</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       {/* Mini confetti burst */}
                       {miniConfetti.map(p => (
                         <motion.div

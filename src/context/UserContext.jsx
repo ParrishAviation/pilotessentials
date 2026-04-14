@@ -17,6 +17,7 @@ const EMPTY_STATE = {
   perfectQuizzes: [],
   enrolledCourses: [],
   quizScores: {},
+  chatMessages: 0,
 };
 
 function getLevel(xp) {
@@ -48,6 +49,7 @@ export function UserProvider({ children }) {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [streakWarning, setStreakWarning] = useState(false); // show "train today!" warning
   const loadingRef = useRef(false);
 
   const loadUserData = useCallback(async (userId) => {
@@ -86,6 +88,7 @@ export function UserProvider({ children }) {
         quizScores: quizScoresMap,
         earnedBadges: (badgesRes.data || []).map(r => r.badge_id),
         perfectQuizzes: (perfectRes.data || []).map(r => r.quiz_id),
+        chatMessages: profile.chat_messages || 0,
       });
     } catch (err) {
       console.error('Failed to load user data:', err);
@@ -122,6 +125,9 @@ export function UserProvider({ children }) {
       if (badge.moduleRequired && nextState.completedModules.includes(badge.moduleRequired)) earned = true;
       if (badge.courseRequired && nextState.completedCourses.includes(badge.courseRequired)) earned = true;
       if (badge.perfect && nextState.perfectQuizzes.length > 0) earned = true;
+      if (badge.perfectCount && nextState.perfectQuizzes.length >= badge.perfectCount) earned = true;
+      if (badge.chatRequired && (nextState.chatMessages || 0) >= badge.chatRequired) earned = true;
+      if (badge.streakComeback && nextState.streak >= 1 && nextState._comeback) earned = true;
       if (earned) newBadges.push(badge.id);
     });
 
@@ -172,10 +178,11 @@ export function UserProvider({ children }) {
     if (!authUser || userData.completedModules.includes(moduleId)) return;
     const newModules = [...userData.completedModules, moduleId];
     setUserData(prev => ({ ...prev, completedModules: newModules }));
+    addNotification('Module Complete! 🎓', 'badge');
     await supabase.from('completed_modules').upsert({ user_id: authUser.id, module_id: moduleId });
     const newBadges = await checkAndAwardBadges({ ...userData, completedModules: newModules });
     if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
-  }, [authUser, userData, checkAndAwardBadges]);
+  }, [authUser, userData, checkAndAwardBadges, addNotification]);
 
   const completeCourse = useCallback(async (courseId) => {
     if (!authUser || userData.completedCourses.includes(courseId)) return;
@@ -195,7 +202,27 @@ export function UserProvider({ children }) {
     const newPerfect = isPerfect && !userData.perfectQuizzes.includes(quizId)
       ? [...userData.perfectQuizzes, quizId] : userData.perfectQuizzes;
 
-    setUserData(prev => ({ ...prev, quizScores: newScores, perfectQuizzes: newPerfect }));
+    // XP for quiz performance
+    let quizXp = 0;
+    if (percent === 100) quizXp = 150;
+    else if (percent >= 90) quizXp = 100;
+    else if (percent >= 80) quizXp = 75;
+    else if (percent >= 70) quizXp = 50;
+
+    const newXp = userData.xp + quizXp;
+    const prevLevel = getLevel(userData.xp);
+    const newLevel = getLevel(newXp);
+
+    setUserData(prev => ({ ...prev, quizScores: newScores, perfectQuizzes: newPerfect, xp: newXp, level: newLevel }));
+
+    if (quizXp > 0) {
+      addNotification(`+${quizXp} XP`, 'xp');
+    }
+    if (newLevel > prevLevel) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 4000);
+      setTimeout(() => addNotification(`Level Up! You're now Level ${newLevel} 🚀`, 'levelup'), 300);
+    }
 
     await Promise.all([
       supabase.from('quiz_scores').upsert({
@@ -205,15 +232,19 @@ export function UserProvider({ children }) {
       supabase.from('quiz_attempts').insert({
         user_id: authUser.id, quiz_id: quizId, score, total, percent, is_perfect: isPerfect,
       }),
+      quizXp > 0 && updateProfile({ xp: newXp, level: newLevel }),
     ]);
 
     if (isPerfect && !userData.perfectQuizzes.includes(quizId)) {
       await supabase.from('perfect_quizzes').upsert({ user_id: authUser.id, quiz_id: quizId });
     }
 
-    const newBadges = await checkAndAwardBadges({ ...userData, quizScores: newScores, perfectQuizzes: newPerfect });
+    const nextState = { ...userData, quizScores: newScores, perfectQuizzes: newPerfect, xp: newXp };
+    const newBadges = await checkAndAwardBadges(nextState);
     if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
-  }, [authUser, userData, checkAndAwardBadges]);
+
+    return quizXp;
+  }, [authUser, userData, addNotification, updateProfile, checkAndAwardBadges]);
 
   const enrollInCourse = useCallback(async (courseId) => {
     if (!authUser || userData.enrolledCourses.includes(courseId)) return;
@@ -222,15 +253,106 @@ export function UserProvider({ children }) {
     await supabase.from('enrolled_courses').upsert({ user_id: authUser.id, course_id: courseId });
   }, [authUser, userData, addNotification]);
 
+  // Returns { isNew, isComeback, streakXp, newStreak } for use by callers
   const updateStreak = useCallback(async () => {
-    if (!authUser) return;
+    if (!authUser) return {};
     const today = new Date().toISOString().split('T')[0];
-    if (userData.lastActiveDate === today) return;
+    if (userData.lastActiveDate === today) {
+      // Check if we should show warning (streak > 0 but already trained today = no warning)
+      setStreakWarning(false);
+      return {};
+    }
+
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const isComeback = userData.lastActiveDate !== yesterday && userData.lastActiveDate !== null && userData.streak > 0;
     const newStreak = userData.lastActiveDate === yesterday ? userData.streak + 1 : 1;
-    setUserData(prev => ({ ...prev, streak: newStreak, lastActiveDate: today }));
-    await updateProfile({ streak: newStreak, last_active_date: today });
-  }, [authUser, userData, updateProfile]);
+
+    // Streak XP bonus
+    let streakXp = 0;
+    if (newStreak === 3) streakXp = 50;
+    else if (newStreak === 7) streakXp = 150;
+    else if (newStreak === 14) streakXp = 300;
+    else if (newStreak === 30) streakXp = 750;
+    else if (newStreak > 1) streakXp = 25; // daily bonus for maintaining
+
+    const newXp = userData.xp + streakXp;
+    const prevLevel = getLevel(userData.xp);
+    const newLevel = getLevel(newXp);
+
+    setUserData(prev => ({ ...prev, streak: newStreak, lastActiveDate: today, xp: newXp, level: newLevel }));
+    setStreakWarning(false);
+
+    if (isComeback) {
+      addNotification(`Welcome back! 2x XP today 🔥`, 'streak');
+    } else if (newStreak === 7) {
+      addNotification(`🔥 7-day streak! +${streakXp} XP`, 'streak');
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+    } else if (newStreak === 14 || newStreak === 30) {
+      addNotification(`🔥 ${newStreak}-day streak! +${streakXp} XP`, 'streak');
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+    } else if (newStreak > 1 && streakXp > 0) {
+      addNotification(`🔥 ${newStreak}-day streak! +${streakXp} XP`, 'streak');
+    }
+
+    if (newLevel > prevLevel) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 4000);
+      setTimeout(() => addNotification(`Level Up! You're now Level ${newLevel} 🚀`, 'levelup'), 400);
+    }
+
+    await updateProfile({ streak: newStreak, last_active_date: today, xp: newXp, level: newLevel });
+
+    // Check streak-based badges
+    const nextState = { ...userData, streak: newStreak, xp: newXp, _comeback: isComeback };
+    const newBadges = await checkAndAwardBadges(nextState);
+    if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
+
+    return { isNew: true, isComeback, streakXp, newStreak };
+  }, [authUser, userData, addNotification, updateProfile, checkAndAwardBadges]);
+
+  // Check streak warning — call when user visits without having trained yet today
+  const checkStreakWarning = useCallback(() => {
+    if (!userData.streak || !userData.lastActiveDate) return;
+    const today = new Date().toISOString().split('T')[0];
+    if (userData.lastActiveDate === today) { setStreakWarning(false); return; }
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    if (userData.lastActiveDate === yesterday && userData.streak >= 2) {
+      setStreakWarning(true);
+    }
+  }, [userData.streak, userData.lastActiveDate]);
+
+  // Award XP for chat engagement
+  const awardChatXp = useCallback(async () => {
+    if (!authUser) return;
+    const XP_PER_MESSAGE = 10;
+    const MAX_CHAT_XP_PER_DAY = 50; // cap at 5 messages worth per day
+
+    // Simple daily cap via profile field
+    const newChatMessages = (userData.chatMessages || 0) + 1;
+    const chatXpToday = Math.min(XP_PER_MESSAGE, Math.max(0, MAX_CHAT_XP_PER_DAY - ((userData.chatMessages || 0) * XP_PER_MESSAGE)));
+    if (chatXpToday <= 0) return;
+
+    const newXp = userData.xp + chatXpToday;
+    const prevLevel = getLevel(userData.xp);
+    const newLevel = getLevel(newXp);
+
+    setUserData(prev => ({ ...prev, xp: newXp, level: newLevel, chatMessages: newChatMessages }));
+    addNotification(`+${chatXpToday} XP`, 'xp');
+
+    if (newLevel > prevLevel) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 4000);
+      setTimeout(() => addNotification(`Level Up! You're now Level ${newLevel} 🚀`, 'levelup'), 300);
+    }
+
+    await updateProfile({ xp: newXp, level: newLevel, chat_messages: newChatMessages });
+
+    const nextState = { ...userData, xp: newXp, chatMessages: newChatMessages };
+    const newBadges = await checkAndAwardBadges(nextState);
+    if (newBadges.length) setUserData(prev => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newBadges] }));
+  }, [authUser, userData, addNotification, updateProfile, checkAndAwardBadges]);
 
   const xpForNextLevel = getXpForNextLevel(userData.level);
   const xpForCurrentLevel = getXpForCurrentLevel(userData.level);
@@ -238,12 +360,18 @@ export function UserProvider({ children }) {
     ((userData.xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100
   ));
 
+  const triggerConfetti = useCallback((duration = 3500) => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), duration);
+  }, []);
+
   return (
     <UserContext.Provider value={{
       user: userData,
       dataLoaded,
       notifications,
       showConfetti,
+      streakWarning,
       xpForNextLevel,
       xpForCurrentLevel,
       levelPercent,
@@ -253,6 +381,9 @@ export function UserProvider({ children }) {
       saveQuizScore,
       enrollInCourse,
       updateStreak,
+      checkStreakWarning,
+      awardChatXp,
+      triggerConfetti,
     }}>
       {children}
     </UserContext.Provider>

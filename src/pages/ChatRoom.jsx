@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Shield, ShieldCheck, X, AtSign, Trash2, UserPlus, UserMinus, ChevronDown, Users, MessageSquare, Lock, CheckCircle, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import { supabase } from '../lib/supabase';
 
 const ADMIN_EMAILS = ['jack@parrishaviation.com', 'titiusmclaughlin@gmail.com'];
@@ -229,6 +230,7 @@ function CfiUpsellWall() {
 // ─── Shared chat panel ────────────────────────────────────────────────────────
 function ChatPanel({ table, channelName, presenceKey, placeholder, emptyTitle, emptySubtitle, isCfiRoom, roomKey }) {
   const { user: authUser } = useAuth();
+  const { awardChatXp } = useUser();
   const myEmail = authUser?.email;
   const myId = authUser?.id;
   const myName = authUser?.user_metadata?.full_name || myEmail?.split('@')[0] || 'Pilot';
@@ -328,6 +330,8 @@ function ChatPanel({ table, channelName, presenceKey, placeholder, emptyTitle, e
     const { error } = await supabase.from(table).insert({ user_id: myId, user_name: myName, content, mentions });
     if (error) { console.error('Send error:', error); setDraft(content); }
     else {
+      // Award XP for chat engagement (fire-and-forget)
+      awardChatXp?.();
       // Fire-and-forget email notification — never blocks the user
       fetch('/api/chat-notify', {
         method: 'POST',
