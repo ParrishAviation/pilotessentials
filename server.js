@@ -86,6 +86,17 @@ app.post('/api/notify-signup', async (req, res) => {
   }
 });
 
+// Route: POST /api/chat-notify
+app.post('/api/chat-notify', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/chat-notify.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(200).json({ ok: true });
+  }
+});
+
 // Route: POST /api/send-study-guide
 app.post('/api/send-study-guide', async (req, res) => {
   try {

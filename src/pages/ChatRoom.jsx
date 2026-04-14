@@ -227,7 +227,7 @@ function CfiUpsellWall() {
 }
 
 // ─── Shared chat panel ────────────────────────────────────────────────────────
-function ChatPanel({ table, channelName, presenceKey, placeholder, emptyTitle, emptySubtitle, isCfiRoom }) {
+function ChatPanel({ table, channelName, presenceKey, placeholder, emptyTitle, emptySubtitle, isCfiRoom, roomKey }) {
   const { user: authUser } = useAuth();
   const myEmail = authUser?.email;
   const myId = authUser?.id;
@@ -327,6 +327,14 @@ function ChatPanel({ table, channelName, presenceKey, placeholder, emptyTitle, e
     setMentionSuggestions([]);
     const { error } = await supabase.from(table).insert({ user_id: myId, user_name: myName, content, mentions });
     if (error) { console.error('Send error:', error); setDraft(content); }
+    else {
+      // Fire-and-forget email notification — never blocks the user
+      fetch('/api/chat-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName: myName, userEmail: myEmail, content, room: roomKey }),
+      }).catch(() => {});
+    }
     setSending(false);
     inputRef.current?.focus();
   }
@@ -534,6 +542,7 @@ export default function ChatRoom() {
           emptyTitle="The lounge is empty"
           emptySubtitle="Be the first to say hello to your fellow student pilots!"
           isCfiRoom={false}
+          roomKey="student"
         />
       ) : hasCfiAccess ? (
         <ChatPanel
@@ -544,6 +553,7 @@ export default function ChatRoom() {
           emptyTitle="CFI Lounge is ready"
           emptySubtitle="Ask your first question — a certified flight instructor will answer!"
           isCfiRoom={true}
+          roomKey="cfi"
         />
       ) : (
         <CfiUpsellWall />
