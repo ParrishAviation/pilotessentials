@@ -97,6 +97,17 @@ app.post('/api/send-study-guide', async (req, res) => {
   }
 });
 
+// Route: POST /api/delete-user
+app.post('/api/delete-user', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/delete-user.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Route: POST /api/chat (Captain AI)
 app.post('/api/chat', async (req, res) => {
   try {

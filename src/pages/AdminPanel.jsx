@@ -217,6 +217,9 @@ export default function AdminPanel() {
   const [studentSearch, setStudentSearch] = useState('');
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [studentSort, setStudentSort] = useState('xp'); // 'xp' | 'name' | 'lessons' | 'joined'
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name } | null
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // Quiz bank editor state
   const QUIZ_KEYS = Object.keys(QUIZ_BANK).filter(k => QUIZ_BANK[k].questions);
@@ -357,6 +360,31 @@ export default function AdminPanel() {
       setStudents([]);
     } finally {
       setStudentsLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await fetch('/api/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: deleteConfirm.id, adminEmail: user?.email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStudents(prev => prev ? prev.filter(s => s.id !== deleteConfirm.id) : prev);
+        setExpandedStudent(null);
+        setDeleteConfirm(null);
+      } else {
+        setDeleteError(data.error || 'Failed to delete user.');
+      }
+    } catch {
+      setDeleteError('Network error. Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1849,6 +1877,25 @@ export default function AdminPanel() {
                                 </div>
                               )}
                             </div>
+
+                            {/* Delete user */}
+                            <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: student.id, name: displayName }); setDeleteError(''); }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 6,
+                                  padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
+                                  background: 'rgba(239,68,68,0.07)', color: '#f87171',
+                                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.07)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
+                              >
+                                <Trash2 size={13} />
+                                Delete User
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2643,6 +2690,108 @@ export default function AdminPanel() {
         </div>
         </>}
       </div>
+
+      {/* ── Delete User Confirmation Modal ── */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 24,
+            }}
+            onClick={() => { if (!deleting) { setDeleteConfirm(null); setDeleteError(''); } }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 16 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#0d1f35',
+                border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 20, padding: '32px 28px',
+                width: '100%', maxWidth: 420,
+                boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+              }}
+            >
+              {/* Icon */}
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: 'rgba(239,68,68,0.1)',
+                border: '2px solid rgba(239,68,68,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 20,
+              }}>
+                <Trash2 size={24} color="#f87171" />
+              </div>
+
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', margin: '0 0 8px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                Delete User?
+              </h3>
+              <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, margin: '0 0 8px' }}>
+                You are about to permanently delete <strong style={{ color: '#f1f5f9' }}>{deleteConfirm.name}</strong>.
+              </p>
+              <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, margin: '0 0 24px' }}>
+                This will remove their account, all progress, quiz attempts, purchases, and chat history. <strong style={{ color: '#fca5a5' }}>This cannot be undone.</strong>
+              </p>
+
+              {deleteError && (
+                <div style={{
+                  padding: '10px 14px', borderRadius: 8, marginBottom: 16,
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)',
+                  fontSize: 13, color: '#fca5a5',
+                }}>
+                  {deleteError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { setDeleteConfirm(null); setDeleteError(''); }}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: '11px 0', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(255,255,255,0.04)', color: '#94a3b8',
+                    fontSize: 14, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteUser}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: '11px 0', borderRadius: 10, border: 'none',
+                    background: deleting ? 'rgba(239,68,68,0.4)' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    color: '#fff', fontSize: 14, fontWeight: 700,
+                    cursor: deleting ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    boxShadow: deleting ? 'none' : '0 4px 16px rgba(220,38,38,0.35)',
+                  }}
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={15} />
+                      Yes, Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
