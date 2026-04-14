@@ -57,3 +57,61 @@ create policy "Read moderators" on public.chat_moderators
 -- Only existing mods / admins can insert (enforced at app layer too)
 create policy "Manage moderators" on public.chat_moderators
   for all using (auth.uid() is not null);
+
+
+-- ─── CFI Chatroom (cfi_mentorship plan only) ──────────────────────────────────
+create table if not exists public.cfi_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  user_name text not null,
+  content text not null check (char_length(content) between 1 and 2000),
+  mentions text[] default '{}',
+  deleted_at timestamptz default null,
+  deleted_by uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+alter table public.cfi_chat_messages enable row level security;
+
+-- Only users with an active cfi_mentorship purchase (or admins) can read CFI messages
+create policy "Read CFI chat messages" on public.cfi_chat_messages
+  for select using (
+    auth.uid() is not null
+    and deleted_at is null
+    and (
+      auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+      or exists (
+        select 1 from public.purchases
+        where user_id = auth.uid()
+          and plan = 'cfi_mentorship'
+          and (cfi_access_expires_at is null or cfi_access_expires_at > now())
+      )
+    )
+  );
+
+-- Only cfi_mentorship users (or admins) can post
+create policy "Insert CFI chat messages" on public.cfi_chat_messages
+  for insert with check (
+    auth.uid() = user_id
+    and (
+      auth.email() in ('jack@parrishaviation.com', 'titiusmclaughlin@gmail.com')
+      or exists (
+        select 1 from public.purchases
+        where user_id = auth.uid()
+          and plan = 'cfi_mentorship'
+          and (cfi_access_expires_at is null or cfi_access_expires_at > now())
+      )
+    )
+  );
+
+-- Soft-delete by owner or moderator
+create policy "Delete CFI chat messages" on public.cfi_chat_messages
+  for update using (
+    auth.uid() = user_id
+    or exists (select 1 from public.chat_moderators where user_id = auth.uid())
+  );
+
+-- Index for fast ordered fetch
+create index if not exists cfi_chat_messages_created_at_idx on public.cfi_chat_messages (created_at desc);
+
+-- Enable Realtime
+alter publication supabase_realtime add table public.cfi_chat_messages;
