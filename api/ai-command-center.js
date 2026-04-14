@@ -281,7 +281,26 @@ export default async function handler(req, res) {
     const insights = computeInsights(rawData);
 
     // Generate AI recommendations
-    const recs = await generateRecommendations(insights);
+    const rawRecs = await generateRecommendations(insights);
+
+    // Normalize categories + ensure required fields so the frontend always renders
+    const VALID_CATS = { errors: 1, learning: 1, engagement: 1, revenue: 1 };
+    const VALID_PRI  = { critical: 1, high: 1, medium: 1, low: 1 };
+    const recs = rawRecs.map(r => ({
+      ...r,
+      id: r.id || null,
+      status: 'open',
+      category: VALID_CATS[r.category] ? r.category
+               : r.category?.includes('error') ? 'errors'
+               : r.category?.includes('revenue') || r.category?.includes('growth') ? 'revenue'
+               : r.category?.includes('engage') || r.category?.includes('retention') ? 'engagement'
+               : 'learning',
+      priority: VALID_PRI[r.priority] ? r.priority : 'medium',
+      title: String(r.title || 'Recommendation'),
+      description: String(r.description || ''),
+      action: String(r.action || ''),
+      impact_score: Number(r.impact_score) || 50,
+    }));
 
     // Store in Supabase — silently skip if table doesn't exist yet
     if (serviceKey) {

@@ -54,7 +54,8 @@ function RecommendationCard({ rec, onAccept, onReject, onResolve }) {
   const [loading, setLoading] = useState(false);
   const cat = CATEGORY_META[rec.category] || CATEGORY_META.learning;
   const pri = PRIORITY_META[rec.priority] || PRIORITY_META.medium;
-  const isOpen = rec.status === 'open';
+  const recStatus = rec.status || 'open';
+  const isOpen = recStatus === 'open';
 
   async function act(action) {
     setLoading(true);
@@ -73,7 +74,7 @@ function RecommendationCard({ rec, onAccept, onReject, onResolve }) {
         border: `1px solid ${cat.border}`,
         borderRadius: 14,
         overflow: 'hidden',
-        opacity: rec.status !== 'open' ? 0.6 : 1,
+        opacity: recStatus !== 'open' ? 0.6 : 1,
         transition: 'opacity 0.2s',
       }}
     >
@@ -91,9 +92,9 @@ function RecommendationCard({ rec, onAccept, onReject, onResolve }) {
             <span style={{ fontSize: 10, fontWeight: 600, color: cat.color, background: `${cat.color}15`, padding: '2px 7px', borderRadius: 4 }}>
               {cat.label}
             </span>
-            {rec.status !== 'open' && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: rec.status === 'resolved' ? '#4ade80' : rec.status === 'accepted' ? '#38bdf8' : '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '2px 7px', borderRadius: 4 }}>
-                {rec.status.toUpperCase()}
+            {recStatus !== 'open' && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: recStatus === 'resolved' ? '#4ade80' : recStatus === 'accepted' ? '#38bdf8' : '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '2px 7px', borderRadius: 4 }}>
+                {recStatus.toUpperCase()}
               </span>
             )}
           </div>
@@ -236,18 +237,22 @@ export default function AICommandCenter() {
     }
   }
 
+  // Treat missing status as 'open' (fresh from Claude before DB save)
+  const getStatus = (r) => r.status || 'open';
+
   const visibleRecs = recommendations.filter(r => {
-    if (!showResolved && (r.status === 'rejected' || r.status === 'resolved')) return false;
+    const s = getStatus(r);
+    if (!showResolved && (s === 'rejected' || s === 'resolved')) return false;
     if (activeFilter !== 'all' && r.category !== activeFilter) return false;
     return true;
   });
 
-  const criticalCount = recommendations.filter(r => r.priority === 'critical' && r.status === 'open').length;
-  const openCount = recommendations.filter(r => r.status === 'open').length;
-  const resolvedCount = recommendations.filter(r => r.status === 'resolved').length;
+  const criticalCount = recommendations.filter(r => r.priority === 'critical' && getStatus(r) === 'open').length;
+  const openCount = recommendations.filter(r => getStatus(r) === 'open').length;
+  const resolvedCount = recommendations.filter(r => getStatus(r) === 'resolved').length;
 
   const catCounts = {};
-  recommendations.filter(r => r.status === 'open').forEach(r => {
+  recommendations.filter(r => getStatus(r) === 'open').forEach(r => {
     catCounts[r.category] = (catCounts[r.category] || 0) + 1;
   });
 
