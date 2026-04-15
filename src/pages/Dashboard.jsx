@@ -6,6 +6,7 @@ import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { COURSES, BADGES } from '../data/courses';
 import { supabase } from '../lib/supabase';
+import WelcomeTour, { useTourComplete } from '../components/WelcomeTour';
 
 const LEVEL_TITLES = ['', 'Student Pilot', 'Solo Flyer', 'Cross-Country Pilot', 'Instrument Student', 'Commercial Trainee', 'CFI Candidate', 'Multi-Engine Pilot', 'ATP Candidate', 'Check Airman', 'Master Aviator'];
 
@@ -394,8 +395,10 @@ function StreakChallengeWidget({ streak, navigate }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, updateStreak, checkStreakWarning, streakWarning } = useUser();
+  const { user, updateStreak, checkStreakWarning, streakWarning, addXp } = useUser();
   const { hasPaid, tierLoading } = useAuth();
+  const tourDone = useTourComplete();
+  const [showTour, setShowTour] = useState(!tourDone);
 
   useEffect(() => {
     updateStreak();
@@ -422,6 +425,13 @@ export default function Dashboard() {
 
   return (
     <div className="page-container" style={{ padding: '32px 36px', maxWidth: 1100 }}>
+      {/* Welcome Tour */}
+      <AnimatePresence>
+        {showTour && (
+          <WelcomeTour onComplete={() => setShowTour(false)} />
+        )}
+      </AnimatePresence>
+
       {/* Upgrade Banner */}
       {!tierLoading && !hasPaid && (
         <UpgradeBanner onUpgrade={(plan) => navigate(`/checkout?plan=${plan}`)} />
@@ -525,14 +535,22 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-            <button
-              className="btn-primary"
-              onClick={() => navigate('/courses')}
-              style={{ padding: '14px 28px', borderRadius: 14, fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              {enrolledCourses.length ? 'Continue Learning' : 'Browse Courses'}
-              <ChevronRight size={18} />
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+              <button
+                className="btn-primary"
+                onClick={() => navigate('/courses')}
+                style={{ padding: '14px 28px', borderRadius: 14, fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                {enrolledCourses.length ? 'Continue Learning' : 'Browse Courses'}
+                <ChevronRight size={18} />
+              </button>
+              <button
+                onClick={() => setShowTour(true)}
+                style={{ background: 'none', border: 'none', color: '#334155', fontSize: 11, fontWeight: 600, cursor: 'pointer', letterSpacing: 0.3 }}
+              >
+                ✈️ Take the platform tour
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
