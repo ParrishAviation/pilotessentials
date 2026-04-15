@@ -3,8 +3,14 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/parse-questions.js": {
-      "maxDuration": 30
+    "api/parse-questions.js": { "maxDuration": 30 },
+    "api/streak-reminder.js": { "maxDuration": 60 },
+    "api/send-campaign.js":   { "maxDuration": 60 }
+  },
+  "crons": [
+    {
+      "path": "/api/streak-reminder",
+      "schedule": "0 18 * * *"
     }
-  }
+  ]
 }

@@ -163,6 +163,17 @@ app.post('/api/send-campaign', async (req, res) => {
   }
 });
 
+// Route: POST /api/streak-reminder (cron)
+app.post('/api/streak-reminder', async (req, res) => {
+  try {
+    const handler = await loadHandler('./api/streak-reminder.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Route: POST /api/cfi-booking-notify
 app.post('/api/cfi-booking-notify', async (req, res) => {
   try {

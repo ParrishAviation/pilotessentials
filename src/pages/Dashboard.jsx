@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, BookOpen, Trophy, Star, ChevronRight, Flame, Lock, MessageSquare, Target, AlertTriangle } from 'lucide-react';
+import { Zap, BookOpen, Trophy, Star, ChevronRight, Flame, Lock, MessageSquare, Target, AlertTriangle, Gift } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { COURSES, BADGES } from '../data/courses';
+import { supabase } from '../lib/supabase';
 
 const LEVEL_TITLES = ['', 'Student Pilot', 'Solo Flyer', 'Cross-Country Pilot', 'Instrument Student', 'Commercial Trainee', 'CFI Candidate', 'Multi-Engine Pilot', 'ATP Candidate', 'Check Airman', 'Master Aviator'];
 
@@ -221,6 +222,174 @@ function getDailyChallenge(enrolledCourses, completedLessons) {
     }
   }
   return null;
+}
+
+const STREAK_MILESTONE = 7;
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function StreakChallengeWidget({ streak, navigate }) {
+  const [platformAvg, setPlatformAvg] = useState(null);
+  const [unlockAnim, setUnlockAnim] = useState(false);
+  const daysLeft = Math.max(0, STREAK_MILESTONE - streak);
+  const isUnlocked = streak >= STREAK_MILESTONE;
+  const pct = Math.min(100, (streak / STREAK_MILESTONE) * 100);
+
+  useEffect(() => {
+    supabase
+      .from('profiles')
+      .select('streak')
+      .gt('streak', 0)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const avg = Math.round(data.reduce((s, r) => s + (r.streak || 0), 0) / data.length);
+          setPlatformAvg(avg);
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (isUnlocked) {
+      setTimeout(() => setUnlockAnim(true), 400);
+    }
+  }, [isUnlocked]);
+
+  const circumference = 2 * Math.PI * 30;
+  const dashOffset = circumference - (circumference * pct) / 100;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.35 }}
+      style={{
+        background: isUnlocked
+          ? 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.06))'
+          : 'linear-gradient(135deg, rgba(239,68,68,0.1), rgba(245,158,11,0.06))',
+        border: `1px solid ${isUnlocked ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.25)'}`,
+        borderRadius: 20,
+        padding: '20px 22px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Glow behind ring when unlocked */}
+      {isUnlocked && (
+        <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,158,11,0.3) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <Flame size={15} color={isUnlocked ? '#f59e0b' : '#f87171'} />
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>7-Day Streak Challenge</h3>
+        {isUnlocked && (
+          <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 20, padding: '2px 8px' }}>
+            UNLOCKED ✓
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+        {/* Ring */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <svg width="76" height="76" viewBox="0 0 76 76">
+            <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+            <circle cx="38" cy="38" r="30" fill="none"
+              stroke={isUnlocked ? '#f59e0b' : '#f87171'}
+              strokeWidth="7" strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              transform="rotate(-90 38 38)"
+              style={{ transition: 'stroke-dashoffset 1.2s ease' }}
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: isUnlocked ? '#fbbf24' : '#f87171', fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1 }}>{streak}</div>
+            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>days</div>
+          </div>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', marginBottom: 4 }}>
+            {isUnlocked ? '🎉 Practice Test Unlocked!' : daysLeft === 1 ? '1 day away from the reward!' : `${daysLeft} days to unlock reward`}
+          </div>
+          <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, marginBottom: 8 }}>
+            {isUnlocked
+              ? 'You earned a free PPL practice test. Keep the streak going for XP bonuses!'
+              : `Study ${daysLeft} more day${daysLeft !== 1 ? 's' : ''} in a row to unlock a free PPL practice test.`}
+          </div>
+          {platformAvg !== null && (
+            <div style={{ fontSize: 11, color: '#475569' }}>
+              Platform avg: <span style={{ color: '#94a3b8', fontWeight: 600 }}>{platformAvg} days</span>
+              {streak > platformAvg && <span style={{ color: '#4ade80', fontWeight: 700, marginLeft: 4 }}>↑ You're above average!</span>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Day dots */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        {Array.from({ length: STREAK_MILESTONE }).map((_, i) => {
+          const filled = i < streak;
+          const current = i === streak && !isUnlocked;
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <motion.div
+                animate={current ? { scale: [1, 1.15, 1] } : {}}
+                transition={{ repeat: Infinity, duration: 1.8 }}
+                style={{
+                  width: '100%', height: 8, borderRadius: 4,
+                  background: filled
+                    ? (i >= 6 ? '#f59e0b' : '#f87171')
+                    : current
+                      ? 'rgba(248,113,113,0.3)'
+                      : 'rgba(255,255,255,0.07)',
+                  border: current ? '1px solid rgba(248,113,113,0.5)' : 'none',
+                  transition: 'background 0.4s ease',
+                }}
+              />
+              <div style={{ fontSize: 9, color: filled ? '#94a3b8' : '#334155' }}>{DAY_LABELS[i]}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Reward / CTA */}
+      <AnimatePresence>
+        {isUnlocked ? (
+          <motion.button
+            key="unlock"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/course/ppl-course/quiz/ppl-final-test')}
+            style={{
+              width: '100%', padding: '11px', borderRadius: 12,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              border: 'none', color: '#000', fontSize: 13, fontWeight: 800,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <Gift size={14} /> Take Your Free Practice Test →
+          </motion.button>
+        ) : (
+          <motion.button
+            key="study"
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/courses')}
+            style={{
+              width: '100%', padding: '10px', borderRadius: 12,
+              background: 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              color: '#f87171', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <Flame size={13} /> Study Now to Extend Streak →
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 }
 
 export default function Dashboard() {
@@ -598,6 +767,9 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+
+          {/* Streak Challenge Widget */}
+          <StreakChallengeWidget streak={user.streak || 0} navigate={navigate} />
 
           {/* Badges */}
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '22px' }}>
