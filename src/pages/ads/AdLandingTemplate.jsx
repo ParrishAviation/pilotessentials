@@ -24,16 +24,28 @@ const STEPS = [
 
 export default function AdLandingTemplate() {
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif', color: '#f1f5f9', background: '#060f1e' }}>
+    <div style={{ fontFamily: 'Inter, system-ui, sans-serif', color: '#f1f5f9', background: '#060f1e', position: 'relative' }}>
+
+      {/* ── LOGO BAR ── */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        padding: '18px 32px',
+        display: 'flex', alignItems: 'center',
+      }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, boxShadow: '0 0 14px rgba(14,165,233,0.35)' }}>✈️</div>
+          <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>Pilot Essentials</span>
+        </Link>
+      </div>
 
       {/* ── ABOVE THE FOLD ── */}
       <section style={{
-        minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '32px 24px',
+        padding: '64px 32px 24px',
         position: 'relative',
         overflowX: 'hidden',
         background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(14,165,233,0.13) 0%, transparent 70%), #060f1e',
@@ -45,83 +57,80 @@ export default function AdLandingTemplate() {
           backgroundSize: '60px 60px', pointerEvents: 'none',
         }} />
 
-        <div style={{ maxWidth: 936, width: '100%', textAlign: 'center', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28 }}>
+        <div style={{ maxWidth: 1100, width: '100%', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
 
-          {/* Logo */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, boxShadow: '0 0 18px rgba(14,165,233,0.35)' }}>✈️</div>
-            <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: 17, letterSpacing: '-0.3px' }}>Pilot Essentials</span>
-          </Link>
-
-          {/* Headline */}
+          {/* Headline — full width, 2 lines */}
           <motion.h1
             initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             style={{
-              fontSize: 'clamp(28px, 5vw, 58px)', fontWeight: 900, lineHeight: 1.1,
-              letterSpacing: '-1.5px', margin: 0,
+              fontSize: 'clamp(26px, 4.2vw, 54px)', fontWeight: 900, lineHeight: 1.1,
+              letterSpacing: '-1.5px', margin: 0, textAlign: 'center',
               fontFamily: "'Space Grotesk', Inter, sans-serif",
-              color: '#f1f5f9',
+              color: '#f1f5f9', width: '100%',
             }}
           >
             {HEADLINE}
           </motion.h1>
 
-          {/* Hero image */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}
-            style={{
-              width: '100%', maxWidth: 560, borderRadius: 20, overflow: 'hidden',
-              border: '1px solid rgba(56,189,248,0.18)',
-              boxShadow: '0 24px 64px rgba(14,165,233,0.22)',
-            }}
-          >
-            <img
-              src="/hero-cockpit.jpg"
-              alt="Student pilots in the cockpit"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          </motion.div>
+          {/* Image + CTA row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 28, width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
 
-          {/* CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.18 }}
-          >
-            <Link
-              to="/checkout"
+            {/* Hero image */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 10,
-                padding: '18px 52px', borderRadius: 14,
-                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                color: '#fff', fontWeight: 800, fontSize: 18,
-                textDecoration: 'none',
-                boxShadow: '0 8px 32px rgba(14,165,233,0.35)',
-                fontFamily: "'Space Grotesk', sans-serif",
-                letterSpacing: '-0.2px',
-                transition: 'transform 0.15s, box-shadow 0.15s',
+                flex: '1 1 320px', maxWidth: 480, borderRadius: 20, overflow: 'hidden',
+                border: '1px solid rgba(56,189,248,0.18)',
+                boxShadow: '0 24px 64px rgba(14,165,233,0.22)',
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 44px rgba(14,165,233,0.45)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px rgba(14,165,233,0.35)'; }}
             >
-              Become a Pilot <ArrowRight size={18} />
-            </Link>
-          </motion.div>
+              <img
+                src="/hero-cockpit.jpg"
+                alt="Student pilots in the cockpit"
+                style={{ width: '100%', display: 'block' }}
+              />
+            </motion.div>
 
-          {/* Trust badges */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.26 }}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}
-          >
-            {[
-              { emoji: '🦜', label: 'Duolingo for pilots' },
-              { emoji: '💬', label: '24/7 Support' },
-              { emoji: '🛰️', label: 'Live chatroom' },
-            ].map(b => (
-              <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontSize: 16 }}>{b.emoji}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>{b.label}</span>
+            {/* CTA + badges */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.18 }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 16, flex: '0 1 auto' }}
+            >
+              <Link
+                to="/checkout"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 10,
+                  padding: '18px 44px', borderRadius: 14,
+                  background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                  color: '#fff', fontWeight: 800, fontSize: 18,
+                  textDecoration: 'none',
+                  boxShadow: '0 8px 32px rgba(14,165,233,0.35)',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  letterSpacing: '-0.2px',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 44px rgba(14,165,233,0.45)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px rgba(14,165,233,0.35)'; }}
+              >
+                Become a Pilot <ArrowRight size={18} />
+              </Link>
+
+              {/* Trust badges */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { emoji: '🦜', label: 'Duolingo for pilots' },
+                  { emoji: '💬', label: '24/7 Support' },
+                  { emoji: '🛰️', label: 'Live chatroom' },
+                ].map(b => (
+                  <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15 }}>{b.emoji}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>{b.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </motion.div>
+            </motion.div>
+
+          </div>
 
         </div>
       </section>
