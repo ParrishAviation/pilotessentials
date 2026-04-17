@@ -45,7 +45,7 @@ export default function AdLandingTemplate() {
           backgroundSize: '60px 60px', pointerEvents: 'none',
         }} />
 
-        <div style={{ maxWidth: 780, width: '100%', textAlign: 'center', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28 }}>
+        <div style={{ maxWidth: 936, width: '100%', textAlign: 'center', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28 }}>
 
           {/* Logo */}
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
@@ -148,13 +148,15 @@ export default function AdLandingTemplate() {
             How it works
           </h2>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
             {STEPS.map((step, i) => (
+              <div key={step.num} style={{ display: 'flex', alignItems: 'stretch', flex: 1 }}>
               <motion.div
                 key={step.num}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 style={{
+                  flex: 1,
                   padding: '28px 24px', borderRadius: 18,
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(56,189,248,0.14)',
@@ -179,46 +181,91 @@ export default function AdLandingTemplate() {
                   {step.desc}
                 </p>
               </motion.div>
+              {/* Connector arrow between steps */}
+              {i < STEPS.length - 1 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 4px', flexShrink: 0,
+                }}>
+                  <div style={{ width: 24, height: 2, background: 'linear-gradient(90deg, rgba(56,189,248,0.3), rgba(56,189,248,0.7))' }} />
+                </div>
+              )}
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Testimonial */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ duration: 0.45 }}
-          style={{
-            maxWidth: 520, width: '100%',
-            padding: '28px 32px', borderRadius: 20,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            textAlign: 'left',
-          }}
-        >
-          <MessageSquare size={22} color="#38bdf8" style={{ marginBottom: 14 }} />
-          <p style={{ fontSize: 18, color: '#e2e8f0', fontWeight: 500, lineHeight: 1.6, margin: '0 0 18px', fontStyle: 'italic' }}>
-            "Pilot essentials looks good, I really like it!"
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: 15, color: '#fff',
-            }}>
-              T
+        {/* Testimonial + Screenshot */}
+        <div style={{ maxWidth: 860, width: '100%', display: 'flex', alignItems: 'stretch', gap: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
+
+          {/* Screenshot */}
+          <motion.div
+            initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+            transition={{ duration: 0.45 }}
+            style={{
+              flex: '1 1 340px', maxWidth: 420, borderRadius: 16, overflow: 'hidden',
+              alignSelf: 'stretch',
+            }}
+          >
+            <img
+              src="/platform-screenshot.jpg"
+              alt="Pilot Essentials platform"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </motion.div>
+
+          {/* Testimonial + CTA stacked, matching screenshot height */}
+          <motion.div
+            initial={{ opacity: 0, x: 16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+            transition={{ duration: 0.45 }}
+            style={{
+              flex: '1 1 280px', maxWidth: 380,
+              alignSelf: 'stretch',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+              textAlign: 'left',
+            }}
+          >
+            {/* Quote */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <MessageSquare size={18} color="#38bdf8" />
+              <p style={{ fontSize: 15, color: '#cbd5e1', fontWeight: 400, lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>
+                "Pilot essentials looks good, I really like it!"
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 800, fontSize: 13, color: '#fff', flexShrink: 0,
+                }}>
+                  T
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#f1f5f9' }}>Taylor H.</p>
+                  <p style={{ margin: 0, fontSize: 11, color: '#475569' }}>Private Pilot</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#f1f5f9' }}>Taylor H.</p>
-              <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>Student Pilot</p>
-            </div>
-            <div style={{ marginLeft: 'auto' }}>
-              {[...Array(5)].map((_, i) => (
-                <span key={i} style={{ color: '#f59e0b', fontSize: 15 }}>★</span>
-              ))}
-            </div>
-          </div>
-        </motion.div>
+
+            {/* CTA pinned to bottom */}
+            <Link
+              to="/checkout"
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', padding: '15px 24px', borderRadius: 12,
+                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                color: '#fff', fontWeight: 700, fontSize: 15,
+                textDecoration: 'none',
+                boxShadow: '0 4px 20px rgba(14,165,233,0.3)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(14,165,233,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 20px rgba(14,165,233,0.3)'; }}
+            >
+              Start Course Now <ArrowRight size={15} />
+            </Link>
+          </motion.div>
+
+        </div>
 
       </section>
 
