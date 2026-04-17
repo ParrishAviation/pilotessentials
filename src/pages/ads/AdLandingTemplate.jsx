@@ -25,6 +25,33 @@ const STEPS = [
 export default function AdLandingTemplate() {
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif', color: '#f1f5f9', background: '#060f1e', position: 'relative' }}>
+    <style>{`
+      @media (max-width: 768px) {
+        .ad-above-fold {
+          height: auto !important;
+          min-height: 100svh !important;
+          padding: 72px 20px 32px !important;
+          justify-content: flex-start !important;
+        }
+        .ad-content-wrap { gap: 16px !important; }
+        .ad-headline { font-size: 28px !important; letter-spacing: -0.5px !important; line-height: 1.15 !important; }
+        .ad-hero-img { max-width: 100% !important; border-radius: 14px !important; }
+        .ad-cta-btn { padding: 15px 32px !important; font-size: 16px !important; }
+        .ad-badges { gap: 14px !important; }
+        .ad-below-fold {
+          height: auto !important;
+          min-height: 100svh !important;
+          padding: 40px 20px !important;
+          gap: 32px !important;
+        }
+        .ad-steps-row { flex-direction: column !important; gap: 12px !important; }
+        .ad-step-connector { display: none !important; }
+        .ad-step-wrapper { flex-direction: column !important; }
+        .ad-review-row { flex-direction: column !important; gap: 20px !important; }
+        .ad-screenshot { max-width: 100% !important; align-self: auto !important; }
+        .ad-testimonial { max-width: 100% !important; align-self: auto !important; }
+      }
+    `}</style>
 
       {/* ── LOGO BAR ── */}
       <div style={{
@@ -38,7 +65,7 @@ export default function AdLandingTemplate() {
       </div>
 
       {/* ── ABOVE THE FOLD ── */}
-      <section style={{
+      <section className="ad-above-fold" style={{
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -56,11 +83,12 @@ export default function AdLandingTemplate() {
           backgroundSize: '60px 60px', pointerEvents: 'none',
         }} />
 
-        <div style={{ maxWidth: 1100, width: '100%', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+        <div className="ad-content-wrap" style={{ maxWidth: 1100, width: '100%', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
 
           {/* Headline — full width, 2 lines */}
           <motion.h1
             initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+            className="ad-headline"
             style={{
               fontSize: 'clamp(26px, 4.2vw, 54px)', fontWeight: 900, lineHeight: 1.1,
               letterSpacing: '-1.5px', margin: 0, textAlign: 'center',
@@ -73,11 +101,12 @@ export default function AdLandingTemplate() {
 
           {/* Hero image */}
           <motion.div
+            className="ad-hero-img"
             initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}
             style={{
               width: '100%', maxWidth: 480, borderRadius: 20, overflow: 'hidden',
               border: '1px solid rgba(56,189,248,0.18)',
-              boxShadow: '0 24px 64px rgba(14,165,233,0.22)',
+              boxShadow: '0 24px 64px rgba(14,165,233,0.22)'
             }}
           >
             <img
@@ -93,6 +122,7 @@ export default function AdLandingTemplate() {
           >
             <Link
               to="/checkout"
+              className="ad-cta-btn"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 padding: '18px 52px', borderRadius: 14,
@@ -132,7 +162,7 @@ export default function AdLandingTemplate() {
       </section>
 
       {/* ── BELOW THE FOLD ── */}
-      <section style={{
+      <section className="ad-below-fold" style={{
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -153,9 +183,9 @@ export default function AdLandingTemplate() {
             How it works
           </h2>
 
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
+          <div className="ad-steps-row" style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
             {STEPS.map((step, i) => (
-              <div key={step.num} style={{ display: 'flex', alignItems: 'stretch', flex: 1 }}>
+              <div className="ad-step-wrapper" key={step.num} style={{ display: 'flex', alignItems: 'stretch', flex: 1 }}>
               <motion.div
                 key={step.num}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -188,7 +218,7 @@ export default function AdLandingTemplate() {
               </motion.div>
               {/* Connector arrow between steps */}
               {i < STEPS.length - 1 && (
-                <div style={{
+                <div className="ad-step-connector" style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: '0 4px', flexShrink: 0,
                 }}>
@@ -201,12 +231,13 @@ export default function AdLandingTemplate() {
         </div>
 
         {/* Testimonial + Screenshot */}
-        <div style={{ maxWidth: 860, width: '100%', display: 'flex', alignItems: 'stretch', gap: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="ad-review-row" style={{ maxWidth: 860, width: '100%', display: 'flex', alignItems: 'stretch', gap: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
 
           {/* Screenshot */}
           <motion.div
             initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
             transition={{ duration: 0.45 }}
+            className="ad-screenshot"
             style={{
               flex: '1 1 340px', maxWidth: 420, borderRadius: 16, overflow: 'hidden',
               alignSelf: 'stretch',
@@ -223,6 +254,7 @@ export default function AdLandingTemplate() {
           <motion.div
             initial={{ opacity: 0, x: 16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
             transition={{ duration: 0.45 }}
+            className="ad-testimonial"
             style={{
               flex: '1 1 280px', maxWidth: 380,
               alignSelf: 'stretch',
