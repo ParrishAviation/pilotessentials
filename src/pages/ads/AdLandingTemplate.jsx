@@ -87,7 +87,7 @@ export default function AdLandingTemplate() {
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.18 }}
           >
             <Link
-              to="/signup"
+              to="/checkout"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 padding: '18px 52px', borderRadius: 14,
