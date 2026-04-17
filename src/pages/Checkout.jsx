@@ -446,9 +446,16 @@ export default function Checkout() {
             <h2 style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
               Order Summary
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <span style={{ fontSize: 16 }}>✈️</span>
-              <span style={{ color: '#38bdf8', fontWeight: 700, fontSize: 15 }}>Private Pilot Online Test Prep</span>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20,
+              padding: '12px 16px', borderRadius: 12,
+              background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.25)',
+            }}>
+              <span style={{ fontSize: 24 }}>✈️</span>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>Course</p>
+                <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#38bdf8', fontFamily: "'Space Grotesk', sans-serif" }}>Private Pilot Online Test Prep</p>
+              </div>
             </div>
 
             <div style={{
