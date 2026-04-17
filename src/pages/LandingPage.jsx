@@ -722,7 +722,7 @@ function PricingSection({ onLogin, onCheckout }) {
             }}>
               <CheckCircle size={16} color="#4ade80" style={{ flexShrink: 0, marginTop: 1 }} />
               <span style={{ fontSize: 14, color: '#86efac', fontWeight: 600 }}>
-                ✈️ Pass Guarantee — if you don't pass, we do 1-on-1 live ground school with a CFI until you do
+                ✈️ 21-Day Guarantee — if you don't pass in 21 days, get a free 90-min Zoom ground lesson with a real CFI
               </span>
             </div>
             {[

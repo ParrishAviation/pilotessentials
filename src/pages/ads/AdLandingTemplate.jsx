@@ -18,7 +18,7 @@ const STEPS = [
   {
     num: '3',
     title: 'Pass the FAA Test',
-    desc: "Take the test with confidence. If you don't pass, we do 1-on-1 tutoring with a CFI until you do.",
+    desc: "Take the test with confidence. If you don't pass in 21 days, you get a free 90-min Zoom ground lesson with a real CFI.",
   },
 ];
 
