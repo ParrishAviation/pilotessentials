@@ -169,7 +169,7 @@ function PaymentForm({ plan, planKey }) {
           if (isGuest) {
             window.location.href = `https://www.mypilotessentials.com/login?mode=setup&email=${encodeURIComponent(email.trim())}&plan=${planKey}`;
           } else {
-            window.location.href = `https://www.mypilotessentials.com/thank-you?plan=${planKey}`;
+            window.location.href = `https://www.mypilotessentials.com/thank-you`;
           }
         }, 1500);
         return;
@@ -207,7 +207,7 @@ function PaymentForm({ plan, planKey }) {
           if (isGuest) {
             window.location.href = `https://www.mypilotessentials.com/login?mode=setup&email=${encodeURIComponent(email.trim())}&plan=${planKey}`;
           } else {
-            window.location.href = `https://www.mypilotessentials.com/thank-you?plan=${planKey}`;
+            window.location.href = `https://www.mypilotessentials.com/thank-you`;
           }
         }, 1500);
       }
