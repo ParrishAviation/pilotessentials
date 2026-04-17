@@ -443,9 +443,13 @@ export default function Checkout() {
         }}>
           {/* Left — Order Summary */}
           <div>
-            <h2 style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, marginBottom: 24 }}>
+            <h2 style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
               Order Summary
             </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <span style={{ fontSize: 16 }}>✈️</span>
+              <span style={{ color: '#38bdf8', fontWeight: 700, fontSize: 15 }}>Private Pilot Online Test Prep</span>
+            </div>
 
             <div style={{
               background: 'rgba(255,255,255,0.04)',
