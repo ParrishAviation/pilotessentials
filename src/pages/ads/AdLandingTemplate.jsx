@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle, MessageSquare } from 'lucide-react';
 
-const HEADLINE = 'Pass Your FAA Written Test in 30 Days Or We Tutor You 1-On-1 Until You Do';
+const HEADLINE = 'Pass Your FAA Written Test in 21 Days ...or Get a Free 90 Minute Ground Lesson';
 
 const STEPS = [
   {
@@ -12,7 +12,7 @@ const STEPS = [
   },
   {
     num: '2',
-    title: 'Study for 2 Weeks',
+    title: 'Study for 3 Weeks',
     desc: 'Work through structured lessons at your own pace. Our AI Flight Instructor answers every question.',
   },
   {
@@ -28,14 +28,14 @@ export default function AdLandingTemplate() {
 
       {/* ── ABOVE THE FOLD ── */}
       <section style={{
-        height: '100vh',
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '32px 24px',
         position: 'relative',
-        overflow: 'hidden',
+        overflowX: 'hidden',
         background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(14,165,233,0.13) 0%, transparent 70%), #060f1e',
       }}>
         {/* subtle grid */}
