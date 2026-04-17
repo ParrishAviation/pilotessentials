@@ -529,6 +529,17 @@ export default function Checkout() {
                 </div>
               ))}
             </div>
+
+            {/* Guarantee disclaimer */}
+            <div style={{
+              marginTop: 16, padding: '12px 14px', borderRadius: 10,
+              background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)',
+            }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
+                <span style={{ color: '#f59e0b', fontWeight: 700 }}>📋 Guarantee terms: </span>
+                <span style={{ color: '#78716c' }}>To qualify for the free 90-minute CFI Zoom ground lesson, you must complete the full course and attempt the FAA written test within 21 days of enrollment. Applies to Full Access and CFI Mentorship plans.</span>
+              </p>
+            </div>
           </div>
 
           {/* Right — Payment Form */}
