@@ -32,8 +32,7 @@ export default function AdLandingTemplate() {
         padding: '18px 32px',
         display: 'flex', alignItems: 'center',
       }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, boxShadow: '0 0 14px rgba(14,165,233,0.35)' }}>✈️</div>
+        <Link to="/" style={{ textDecoration: 'none' }}>
           <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>Pilot Essentials</span>
         </Link>
       </div>
