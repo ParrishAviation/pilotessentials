@@ -72,65 +72,62 @@ export default function AdLandingTemplate() {
             {HEADLINE}
           </motion.h1>
 
-          {/* Image + CTA row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 28, width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* Hero image */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}
+            style={{
+              width: '100%', maxWidth: 480, borderRadius: 20, overflow: 'hidden',
+              border: '1px solid rgba(56,189,248,0.18)',
+              boxShadow: '0 24px 64px rgba(14,165,233,0.22)',
+            }}
+          >
+            <img
+              src="/hero-cockpit.jpg"
+              alt="Student pilots in the cockpit"
+              style={{ width: '100%', display: 'block' }}
+            />
+          </motion.div>
 
-            {/* Hero image */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}
+          {/* CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.18 }}
+          >
+            <Link
+              to="/checkout"
               style={{
-                flex: '1 1 320px', maxWidth: 480, borderRadius: 20, overflow: 'hidden',
-                border: '1px solid rgba(56,189,248,0.18)',
-                boxShadow: '0 24px 64px rgba(14,165,233,0.22)',
+                display: 'inline-flex', alignItems: 'center', gap: 10,
+                padding: '18px 52px', borderRadius: 14,
+                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                color: '#fff', fontWeight: 800, fontSize: 18,
+                textDecoration: 'none',
+                boxShadow: '0 8px 32px rgba(14,165,233,0.35)',
+                fontFamily: "'Space Grotesk', sans-serif",
+                letterSpacing: '-0.2px',
+                whiteSpace: 'nowrap',
               }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 44px rgba(14,165,233,0.45)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px rgba(14,165,233,0.35)'; }}
             >
-              <img
-                src="/hero-cockpit.jpg"
-                alt="Student pilots in the cockpit"
-                style={{ width: '100%', display: 'block' }}
-              />
-            </motion.div>
+              Start Course Now <ArrowRight size={18} />
+            </Link>
+          </motion.div>
 
-            {/* CTA + badges */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.18 }}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 16, flex: '0 1 auto' }}
-            >
-              <Link
-                to="/checkout"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 10,
-                  padding: '18px 44px', borderRadius: 14,
-                  background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                  color: '#fff', fontWeight: 800, fontSize: 18,
-                  textDecoration: 'none',
-                  boxShadow: '0 8px 32px rgba(14,165,233,0.35)',
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  letterSpacing: '-0.2px',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 44px rgba(14,165,233,0.45)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px rgba(14,165,233,0.35)'; }}
-              >
-                Start Course Now <ArrowRight size={18} />
-              </Link>
-
-              {/* Trust badges */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { emoji: '🦜', label: 'Duolingo for pilots' },
-                  { emoji: '💬', label: '24/7 Support' },
-                  { emoji: '🛰️', label: 'Live chatroom' },
-                ].map(b => (
-                  <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 15 }}>{b.emoji}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>{b.label}</span>
-                  </div>
-                ))}
+          {/* Trust badges */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.26 }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}
+          >
+            {[
+              { emoji: '🦜', label: 'Duolingo for pilots' },
+              { emoji: '💬', label: '24/7 Support' },
+              { emoji: '🛰️', label: 'Live chatroom' },
+            ].map(b => (
+              <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 15 }}>{b.emoji}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>{b.label}</span>
               </div>
-            </motion.div>
-
-          </div>
+            ))}
+          </motion.div>
 
         </div>
       </section>
