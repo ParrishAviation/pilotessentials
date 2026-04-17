@@ -112,7 +112,7 @@ export default function AdLandingTemplate() {
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 44px rgba(14,165,233,0.45)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px rgba(14,165,233,0.35)'; }}
               >
-                Become a Pilot <ArrowRight size={18} />
+                Start Course Now <ArrowRight size={18} />
               </Link>
 
               {/* Trust badges */}
